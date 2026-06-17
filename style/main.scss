@@ -1,0 +1,572 @@
+// ── Theme tokens ──────────────────────────────────────────────────────────
+// Dark is the default; `[data-theme="light"]` overrides it. The toggle in the
+// nav flips `data-theme` on <html> (persisted to localStorage).
+:root,
+[data-theme="dark"] {
+  --bg: #0f1117;
+  --panel: #1a1d27;
+  --border: #2a2f3d;
+  --accent: #4f8cff;
+  --good: #38d39f;
+  --bad: #ff6b6b;
+  --text: #e6e8ee;
+  --muted: #8b91a3;
+  --shadow: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] {
+  --bg: #f4f6fa;
+  --panel: #ffffff;
+  --border: #dce0e8;
+  --accent: #2f6fed;
+  --good: #1faa6c;
+  --bad: #d64545;
+  --text: #1a1d27;
+  --muted: #6b7180;
+  --shadow: rgba(20, 30, 60, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+
+  .brand {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+
+  a {
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+      color: var(--text);
+    }
+  }
+
+  .nav-spacer {
+    flex: 1;
+  }
+
+  .theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+// The first nav link doubles as the brand.
+.nav a:first-of-type {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+// ── Landing page ──────────────────────────────────────────────────────────
+.hero {
+  max-width: 640px;
+  margin: 3rem auto;
+  text-align: center;
+
+  .hero-title {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+  }
+
+  .hero-tagline {
+    color: var(--muted);
+    font-size: 1.15rem;
+    margin-bottom: 1.5rem;
+
+    a {
+      color: var(--accent);
+    }
+  }
+
+  .cta-wrap {
+    margin: 1.5rem 0;
+
+    a {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.2rem;
+      padding: 0.75rem 2.5rem;
+      border-radius: 10px;
+      text-decoration: none;
+
+      &:hover {
+        filter: brightness(1.1);
+      }
+    }
+  }
+
+  .hero-links {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    border: none;
+    background: none;
+    padding: 0;
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .hero-how {
+    text-align: left;
+
+    h3 {
+      margin-top: 0;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+    }
+
+    ol {
+      margin: 0;
+      padding-left: 1.2rem;
+      line-height: 1.7;
+    }
+
+    b {
+      color: var(--accent);
+    }
+  }
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+}
+
+// ── Heads-up display ──────────────────────────────────────────────────────
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.hud-stats {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 1.2rem;
+
+  .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  b {
+    color: var(--accent);
+  }
+
+  &.timer.low b {
+    color: var(--bad);
+  }
+}
+
+// ── Game board (stacked: Goal → Your render → editor) ─────────────────────
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.panel h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+// Goal and preview are always on a white surface so the black glyphs read in
+// both themes.
+.target,
+.preview {
+  background: #fff;
+  border-radius: 8px;
+  min-height: 120px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: safe center;
+  overflow: auto;
+  border: 3px solid transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+// Render the Typst SVG at its intrinsic size — never let the flex container
+// shrink it — so the text height stays constant across problems (wide formulas
+// scroll instead of scaling down).
+.target svg,
+.preview svg {
+  flex-shrink: 0;
+}
+
+.preview.correct {
+  border-color: var(--good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 35%, transparent);
+}
+
+// In dark mode, give the render a dark surface and invert the glyphs (which
+// Typst draws black) to light. Only the SVG is inverted, so the frame border,
+// the green "correct" highlight, and any error text keep their colours.
+[data-theme="dark"] .target,
+[data-theme="dark"] .preview {
+  background: #15171e;
+}
+
+[data-theme="dark"] .target svg,
+[data-theme="dark"] .preview svg {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+// ── Editor with syntax-highlight overlay ──────────────────────────────────
+// A highlighted <pre> sits behind a transparent-text <textarea>; both share
+// identical box metrics so the colors line up exactly under the caret.
+.editor-wrap {
+  position: relative;
+}
+
+.hl,
+.editor {
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  tab-size: 2;
+}
+
+.hl {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+  background: var(--bg);
+  color: var(--text);
+  z-index: 0;
+
+  code {
+    font: inherit;
+    white-space: inherit;
+  }
+}
+
+.editor {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 140px;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+  resize: none;
+  z-index: 1;
+
+  &::placeholder {
+    color: var(--muted);
+  }
+}
+
+// Typst highlight token colors (typst-syntax emits `typ-*` classes). Tuned for
+// dark; overridden for light below.
+.hl {
+  --tok-comment: var(--muted);
+  --tok-key: #c792ea;
+  --tok-op: #89ddff;
+  --tok-num: #f78c6c;
+  --tok-str: #c3e88d;
+  --tok-func: #82aaff;
+  --tok-sym: #7fdbca;
+  --tok-escape: #f78c6c;
+
+  .typ-comment {
+    color: var(--tok-comment);
+    font-style: italic;
+  }
+  .typ-key,
+  .typ-keyword {
+    color: var(--tok-key);
+  }
+  .typ-op,
+  .typ-math-op {
+    color: var(--tok-op);
+  }
+  .typ-num {
+    color: var(--tok-num);
+  }
+  .typ-str {
+    color: var(--tok-str);
+  }
+  .typ-func {
+    color: var(--tok-func);
+  }
+  .typ-pol {
+    color: var(--tok-sym);
+  }
+  .typ-escape {
+    color: var(--tok-escape);
+  }
+  .typ-error {
+    color: var(--bad);
+  }
+}
+
+[data-theme="light"] .hl {
+  --tok-key: #8b1a9b;
+  --tok-op: #0a72a8;
+  --tok-num: #b85c00;
+  --tok-str: #2e7d32;
+  --tok-func: #1565c0;
+  --tok-sym: #00796b;
+  --tok-escape: #b85c00;
+}
+
+.answer {
+  margin-top: 0.75rem;
+}
+
+.answer-src {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  white-space: pre-wrap;
+  color: var(--text);
+  margin: 0;
+}
+
+.diag {
+  color: var(--bad);
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.75rem;
+
+  .hint {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+}
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.problem-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.problem-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.difficulty {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+// ── Tables / leaderboard ──────────────────────────────────────────────────
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .modal-box {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem;
+    width: 360px;
+    text-align: center;
+    box-shadow: 0 10px 40px var(--shadow);
+  }
+
+  // Links inherit a theme-aware accent (instead of the default browser blue).
+  a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  input {
+    width: 100%;
+    padding: 0.6rem;
+    margin: 0.75rem 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+  }
+
+  .submitted {
+    color: var(--good);
+    font-weight: 600;
+  }
+
+  .modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.6rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    font-size: 1.2rem;
+    line-height: 1;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 6px;
+
+    &:hover {
+      color: var(--text);
+      background: var(--bg);
+      filter: none;
+    }
+  }
+}
+
+// ── Problems grid ─────────────────────────────────────────────────────────
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+
+  // This is a gallery (not the game), so scale each formula to fit its card —
+  // overrides the global `.target svg { flex-shrink: 0 }` used during play.
+  .target {
+    max-height: 160px;
+  }
+
+  .target svg {
+    flex-shrink: 1;
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+  }
+}

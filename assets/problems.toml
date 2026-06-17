@@ -1,0 +1,742 @@
+# Auto-generated from the TeXnique problem set via tylax by
+# `cargo run -p typst-engine --example gen_problems`.
+# Points are computed at runtime from a heuristic; `kind` defaults to "math".
+
+[[problem]]
+title = "Quadratic Formula"
+source = "x = (-b plus.minus sqrt(b^2 - 4 a c)) / (2 a)"
+
+[[problem]]
+title = "Pythagorean Theorem"
+source = "c = sqrt(a^2 + b^2)"
+
+[[problem]]
+title = "Sum of first n Squares"
+source = "sum_(i = 1)^n i^2 = (n (n + 1) (2 n + 1)) / 6"
+
+[[problem]]
+title = "Law of Cosines"
+source = "c^2 = a^2 + b^2 - 2 a b cos angle C"
+
+[[problem]]
+title = "Legendre's formula"
+source = "nu_p (n!) = sum_(i = 1)^oo  floor(n / p^i)"
+
+[[problem]]
+title = "Euler's Identity"
+source = "e^(pi i) + 1 = 0"
+
+[[problem]]
+title = "Euler's Lesser-Known Identity"
+source = "ceil(e) - floor(pi) = 0"
+
+[[problem]]
+title = "Normal Distribution"
+source = "Phi (x) = 1 / (sigma sqrt(2 pi)) e^(-((x - mu)^2) / (2 sigma^(2)))"
+
+[[problem]]
+title = "Fourier Transform"
+source = "hat(f) (omega) = integral_(-oo)^oo f(x) e^(-2 pi i x omega) dif x"
+
+[[problem]]
+title = "Wave Equation"
+source = "(partial^2 u) / (partial t^2) = c^2 (partial^2 u) / (partial x^2)"
+
+[[problem]]
+title = "Navier-Stokes Equation"
+source = "rho ((partial upright(bold(v))) / (partial t) + upright(bold(v)) dot nabla upright(bold(v))) = -nabla p + nabla dot upright(bold(T)) + upright(bold(f))"
+
+[[problem]]
+title = "Black-Scholes Equation"
+source = "(partial V) / (partial t) + 1 / 2 sigma^2 S^2 (partial^2 V) / (partial S^2) + r S (partial V) / (partial S) - r V = 0"
+
+[[problem]]
+title = "Relativity"
+source = "E = m c^2"
+
+[[problem]]
+title = "Chaos Theory"
+source = "x_(t + 1) = k x_t (1 - x_t)"
+
+[[problem]]
+title = "Definition of the Derivative"
+source = "(dif f) / (dif x) = lim_(h -> 0) (f(x + h) - f(x)) / h"
+
+[[problem]]
+title = "Euler's Formula for Polyhedra"
+source = "V - E + F = 2"
+
+[[problem]]
+title = "Gravitation"
+source = "F = (G m_1 m_2) / d^2"
+
+[[problem]]
+title = "AM-GM"
+source = "(x_1 + x_2 + ... + x_n) / n >= root(n, x_1 dot x_2 dots.c x_n)"
+
+[[problem]]
+title = "Stirling's Approximation"
+source = "n! approx sqrt(2 pi n) (n / e)^n"
+
+[[problem]]
+title = "Stokes' Theorem"
+source = "integral.double_S nabla times upright(bold(F)) dot dif upright(bold(S)) = integral.cont_Gamma upright(bold(F)) dot dif upright(bold(Gamma))"
+
+[[problem]]
+title = "Divergence Theorem"
+source = "integral.triple_V (nabla dot upright(bold(F))) dif V = integral.surf_S (upright(bold(F)) dot upright(bold(n))) dif S"
+
+[[problem]]
+title = "Cauchy-Schwarz Inequality"
+source = "abs(chevron.l upright(bold(u))\\, upright(bold(v)) chevron.r)^2 <= chevron.l upright(bold(u)), upright(bold(u)) chevron.r dot chevron.l upright(bold(v)), upright(bold(v)) chevron.r"
+
+[[problem]]
+title = "Area of a Circle"
+source = "A = pi r^2"
+
+[[problem]]
+title = "Definition of tau"
+source = "tau = 2 pi"
+
+[[problem]]
+title = "Sophie Germain Identity"
+source = "a^4 + 4 b^4 = (a^2 + 2 a b + 2 b^2) (a^2 - 2 a b + 2 b^2)"
+
+[[problem]]
+title = "Pascal's Identity"
+source = "binom(n, k) = binom(n - 1, k) + binom(n - 1, k - 1)"
+
+[[problem]]
+title = "Hockey-stick Identity"
+source = "sum_(i = r)^n binom(i, r) = binom(n + 1, r + 1)"
+
+[[problem]]
+title = "Vandermonde's Identity"
+source = "binom(m + n, r) = sum_(k = 0)^r binom(m, k) binom(n, r - k)"
+
+[[problem]]
+title = "Combinations"
+source = "binom(n, k) = n! / (k! (n - k)!)"
+
+[[problem]]
+title = "Heine's Identity"
+source = "1 / sqrt(z - cos psi) = sqrt(2) / pi sum_(m = -oo)^oo Q_(m - 1 / 2)(z) e^(i m psi)"
+
+[[problem]]
+title = "Binomial identity"
+source = "(x + y)^n = sum_(k = 0)^n binom(n, k) x^(n - k) y^k"
+
+[[problem]]
+title = "Hermite's Identity"
+source = "sum_(k = 0)^(n - 1) floor(x + k / n) = floor(n x)"
+
+[[problem]]
+title = "Matrix Determinant Lemma"
+source = "det (upright(bold(A)) + upright(bold(u)) upright(bold(v))^top) = (1 + upright(bold(v))^top upright(bold(A))^(-1) upright(bold(u))) det (upright(bold(A)))"
+
+[[problem]]
+title = "Euler Product of the Riemann-Zeta function"
+source = "zeta(s) = sum_(n = 1)^oo 1 / n^s = product_(p in PP) 1 / (1 - p^(-s))"
+
+[[problem]]
+title = "Irrationality of the Square Root of 2"
+source = "sqrt(2) in.not QQ"
+
+[[problem]]
+title = "Heron's Formula"
+source = "[triangle.t A B C ] = sqrt(s (s - a) (s - b) (s - c))"
+
+[[problem]]
+title = "Continued Fraction for pi/2"
+source = "pi / 2 = 1 + 1 / (1 + 1 / (1 / 2 + 1 / (1 / 3 + 1 / (1 / 4 + dots.down))))"
+
+[[problem]]
+title = "Sophomore's Dream"
+source = "integral_0^1 x^(-x) dif x = sum_(n = 1)^oo n^(-n)"
+
+[[problem]]
+title = "Identity involving pi and e"
+source = "product_(n = 2)^oo e (1 - 1 / n^2)^n^2 = pi / (e sqrt(e))"
+
+[[problem]]
+title = "Representation of the Golden Ratio"
+source = "phi.alt = sqrt(1 + sqrt(1 + sqrt(1 + sqrt(1 + ...))))"
+
+[[problem]]
+title = "The Sum of all Positive Integers"
+source = "sum_(n = 1)^oo n = - 1 / 12"
+
+[[problem]]
+title = "Inverse of a complex number"
+source = "z^(-1) = overline(z) / abs(z)^2, forall z != 0"
+
+[[problem]]
+title = "Definition of Convolution"
+source = "(f * g)(t) = integral_(-oo)^oo f(tau) g(t - tau) dif tau"
+
+[[problem]]
+title = "Definition of the Kronecker Delta function"
+source = "delta_(i,j) = cases(0 & i != j, 1 & i = j)"
+
+[[problem]]
+title = "Bayes' Theorem"
+source = "P(A|B) = (P(B|A) P(A)) / (P(B))"
+
+[[problem]]
+title = "Probability Density Function of the Student's t-distribution"
+source = "f(t) = Gamma((nu + 1) / 2) / (sqrt(nu pi) Gamma (nu / 2)) (1 + t^2 / nu)^(-(nu + 1) / 2)"
+
+[[problem]]
+title = "De Morgan's laws"
+source = "not (P and Q) tack.r (not P) or (not Q)"
+
+[[problem]]
+title = "Determinant of a 2 times 2 matrix"
+source = "det mat(delim: \"[\", a, b ; c, d) = a d - b c"
+
+[[problem]]
+title = "Sawtooth Function"
+source = "S(x) = cases(x - floor(x) - 1 / 2 & quad x in RR without ZZ, 0 & quad x in ZZ)"
+
+[[problem]]
+title = "Definition of Graham's Number"
+source = "g_n = cases(3 arrow.t arrow.t arrow.t arrow.t 3 & n = 1, 3 arrow.t^(g_(n - 1)) 3 & n >= 2, n in NN)"
+
+[[problem]]
+title = "Burnside's Lemma"
+source = "abs(X \\/ G) = 1 / abs(G) sum_(g in G) abs(X^g)"
+
+[[problem]]
+title = "Continuum Hypothesis"
+source = "aleph_0 = abs(NN), frak(c) = abs(RR) \\ exists.not A : aleph_0 < abs(A) < frak(c)"
+
+[[problem]]
+title = "Pythagorean Identity"
+source = "sin^2 theta + cos^2 theta = 1"
+
+[[problem]]
+title = "Double Angle for sin"
+source = "sin(2 theta) = 2 sin(theta) cos(theta)"
+
+[[problem]]
+title = "Double Angle for cos"
+source = "cos(2 theta) = cos^2(theta) - sin^2(theta)"
+
+[[problem]]
+title = "Fermat's Last Theorem"
+source = "exists.not {x,y,z,n} in NN, n > 2 : x^n + y^n = z^n"
+
+[[problem]]
+title = "Fermat's Little Theorem"
+source = "a^p equiv a quad (mod med p)"
+
+[[problem]]
+title = "Euler's Theorem"
+source = "gcd(a, n) = 1 => a^(phi(n)) equiv 1 quad (mod med n)"
+
+[[problem]]
+title = "QM-AM-GM-HM Inequality over 3 variables"
+source = "sqrt((a^2 + b^2 + c^2) / 3) >= (a + b + c) / 3 >= root(3, a b c) >= 3 / (1 / a + 1 / b + 1 / c)"
+
+[[problem]]
+title = "Extended Law of Sines"
+source = "a / (sin angle A) = b / (sin angle B) = c / (sin angle C) = 2 R"
+
+[[problem]]
+title = "Integration by Parts"
+source = "integral u dif v = u v - integral v dif u"
+
+[[problem]]
+title = "Definition of Perfect Numbers"
+source = "{ n : sum_(d divides n)^(d < n) d = n }"
+
+[[problem]]
+title = "Gaussian Integral"
+source = "integral_(-oo)^oo e^(-x^2) dif x = sqrt(integral_(-oo)^oo integral_(-oo)^oo e^(-x^2 - y^2) dif x dif y) = sqrt(integral_0^(2 pi) integral_0^oo e^(-r^2)r dif r dif theta) = sqrt(pi)"
+
+[[problem]]
+title = "Definition of an Integral"
+source = "integral_a^b f(x) dif x = lim_(k -> oo) ((b - a) sum_(i = 1)^(k) frac(f (a + i frac(b - a, k)), k))"
+
+[[problem]]
+title = "Quantum Fourier transform"
+source = "|x chevron.r |-> 1 / sqrt(N) sum_(k = 0)^(N - 1) omega_x^k |k chevron.r"
+
+[[problem]]
+title = "Recursive definition of the Hadamard transform"
+source = "H_m = cases(1 & m = 0, 1 / sqrt(2) mat(H_(m - 1), H_(m - 1) ; H_(m - 1), - H_(m - 1)) & m > 0)"
+
+[[problem]]
+title = "Imaginary numbers"
+source = "i^2 = - 1"
+
+[[problem]]
+title = "Sum of Cubes"
+source = "a^3 + b^3 = (a + b) (a^2 - a b + b^2)"
+
+[[problem]]
+title = "RSA Decryption Algorithm"
+source = "m = c^(e^(-1) mod phi.alt (n)) quad (mod med n)"
+
+[[problem]]
+title = "Contraposition"
+source = "(p => q) <=> (not q => not p)"
+
+[[problem]]
+title = "Equation of a spring"
+source = "m dot.double(x) = - k x"
+
+[[problem]]
+title = "Sum of reciprocals of partial sums of ℕ"
+source = "sum_(i = 2)^oo 1 / (sum_(j = 1)^i j) = 1"
+
+[[problem]]
+title = "Binet's Formula"
+source = "F_n = 1 / sqrt(5) (phi^n - ((- 1)^n) / phi^n)"
+
+[[problem]]
+title = "Sum of first n Cubes"
+source = "sum_(k = 0)^n k^3 = (sum_(k = 0)^n k)^2"
+
+[[problem]]
+title = "The Basel Problem"
+source = "sum_(n = 1)^oo 1 / n^2 = pi^2 / 6"
+
+[[problem]]
+title = "Root Mean Square"
+source = "f_\"rms\" = sqrt(1 / (T_2 - T_1) integral_(T_1)^(T_2) [f(t)]^2 dif t)"
+
+[[problem]]
+title = "The Harmonic Series"
+source = "sum^oo_(n = 1) 1 / n = oo"
+
+[[problem]]
+title = "Tupper's Self-Referential Formula"
+source = "1 / 2 < floor(mod(floor(y / 17) 2^(-17 floor(x) - mod (floor(y), 17)),2))"
+
+[[problem]]
+title = "Hölder's Inequality"
+source = "(sum_(i = 1)^n a_i)^p (sum_(i = 1)^n b_i)^q >= (sum_(i = 1)^n root(p + q, a_i^p b_i^q))^(p + q)"
+
+[[problem]]
+title = "Rearrangement Inequality"
+source = "a_1 <= a_2 <= ... <= a_n, b_1 <= b_2 <= ... <= b_n => sum_(i = 1)^n a_i b_i >= sum_(i = 1)^n a_(sigma(i))b_i >= sum_(i = 1)^n a_(n + 1 - i)b_i"
+
+[[problem]]
+title = "Law of Tangents"
+source = "(a - b) / (a + b) = (tan((angle A - angle B) / 2)) / (tan ((angle A + angle B) / 2))"
+
+[[problem]]
+title = "Euler's Arctangent Identity"
+source = "tan^(-1) (1 / x) = tan^(-1) (1 / (x + y)) + tan^(-1) (y / (x^2 + x y + 1))"
+
+[[problem]]
+title = "The Dirichlet Convolution"
+source = "(f ast g)(n) = sum_(d divides n) f(d) g(n / d)"
+
+[[problem]]
+title = "Sum of a Row of Pascal's Triangle"
+source = "binom(n, 0) + binom(n, 1) + binom(n, 2) + ... + binom(n, n) = 2^n"
+
+[[problem]]
+title = "Definitions of Catalan's Constant"
+source = "G = beta(2) = sum_(k = 0)^oo (-1)^k / (2 k + 1)^2 = integral.double_([0,1]^2) (dif x dif y) / (1 + x^2 y^2)"
+
+[[problem]]
+title = "Series Representation of Apéry's Constant"
+source = "zeta(3) = 5 / 2 sum_(n = 1)^oo ((-1)^(n - 1)) / (n^3 binom(2 n, n))"
+
+[[problem]]
+title = "Definition of the Euler-Mascheroni Constant"
+source = "gamma = lim_(n -> oo) (sum_(k = 1)^n 1 / k - ln n) = integral_1^oo (1 / floor(x) - 1 / x) dif x"
+
+[[problem]]
+title = "Green's First Identity"
+source = "integral_Omega (psi Delta phi + nabla psi dot nabla phi) dif V = integral.cont_(partial Omega) psi (nabla phi dot upright(bold(n))) dif S"
+
+[[problem]]
+title = "Cauchy-Riemann Equations"
+source = "(partial u) / (partial x) = (partial v) / (partial y), (partial u) / (partial y) = - (partial v) / (partial x)"
+
+[[problem]]
+title = "Cauchy's Integral Formula"
+source = "f(z_0) = 1 / (2 pi i) integral.cont_Gamma (f(z)) / (z - z_(0)) dif z"
+
+[[problem]]
+title = "Cauchy's Differentiation Formula"
+source = "f^((k)) (z_0) = k! / (2 pi i) integral.cont_Gamma f(z) / (z - z_0)^(k + 1) dif z"
+
+[[problem]]
+title = "Functional Equation for the Riemann-Zeta Function"
+source = "pi^(-s \\/ 2) Gamma(s / 2) zeta(s) = pi^(-(1 - s) \\/ 2) Gamma((1 - s) / 2) zeta(1 - s)"
+
+[[problem]]
+title = "Well-ordering Principle"
+source = "forall M (M subset upright(bold(N)) and M != emptyset => exists m_0 [ m_0 in M and forall n (n in M => m <= n)])"
+
+[[problem]]
+title = "Asymptotic Formula for the Dirichlet Divisor Function"
+source = "sum_(n <= x) tau (n) = x log x + (2 gamma - 1) x + O (sqrt(x))"
+
+[[problem]]
+title = "Prime Number Theorem"
+source = "pi(x) tilde x / (log x)"
+
+[[problem]]
+title = "Cumulative Distribution Function of the Gaussian Distribution"
+source = "Phi(x) = 1 / sqrt(2 pi) integral_(-oo)^x e^(-t^2 \\/ 2) dif t"
+
+[[problem]]
+title = "Chernoff Bound"
+source = "PP(X >= t) <= (EE[e^(lambda X)]) / e^(lambda t)"
+
+[[problem]]
+title = "Union Bound"
+source = "PP(union.big_(i = 1)^n X_i) <= sum_(i = 1)^n PP(X_i)"
+
+[[problem]]
+title = "Law of Total Probability"
+source = "PP(A) = sum_(i = 1)^n PP(A|B_i) PP(B_i)"
+
+[[problem]]
+title = "Linear Least Squares Estimator"
+source = "L[X|Y] = EE[X] + (op(\"cov\")(X, Y)) / (op(\"var\")(Y)) (Y - EE[Y])"
+
+[[problem]]
+title = "Definition of the Dilogarithm"
+source = "op(\"Li\")_2 (z) = -integral_0^z  log(1 - t) / t dif t, z in CC"
+
+[[problem]]
+title = "Leibniz's Determinant Formula"
+source = "det(A) = sum_(sigma in S_n) epsilon(sigma) product_(i = 1)^n A_(i, sigma(i))"
+
+[[problem]]
+title = "Euler-Lagrange Equations"
+source = "(partial L) / (partial q_i) = dif / (dif t) (partial L) / (partial dot(q_i))"
+
+[[problem]]
+title = "Sum of Divisors"
+source = "sigma(n) = sum_(d divides n) d = product_(p^a\\||n) ((p^(a + 1) - 1) / (p - 1))"
+
+[[problem]]
+title = "Einstein Field Equations"
+source = "G_(mu nu)+ Lambda g_(mu nu) = (8 pi G) / c^4 T_(mu nu)"
+
+[[problem]]
+title = "Second Fundamental Theorem of Calculus"
+source = "integral_a^b f(x) dif x = [F(x)]_a^b = F(b) - F(a)"
+
+[[problem]]
+title = "Abel's Summation Formula"
+source = "sum_(x < n <= y) a(n) f(n) = A(y) f(y) - A(x) f(x) - integral_x^y A(t) f'(t) dif t"
+
+[[problem]]
+title = "Lagrange's Theorem"
+source = "(G : H) = abs(G) / abs(H)"
+
+[[problem]]
+title = "Catalan Numbers"
+source = "C_n = sum_(k = 1)^(n - 1) C_k C_(n - k - 1) = 1 / (n + 1) binom(2 n, n)"
+
+[[problem]]
+title = "Ising Model Hamiltonian"
+source = "H(sigma) = -sum_(chevron.l i,j chevron.r) J_(i j) sigma_i sigma_j - mu sum_j h_j sigma_j"
+
+[[problem]]
+title = "Borwein Integral"
+source = "integral_0^oo sin(x) / x sin(x \\/ 3) / (x \\/ 3) dots.c sin(x \\/ 13) / (x \\/ 13) dif x = pi / 2"
+
+[[problem]]
+title = "Parseval Gutzmer Formula"
+source = "f(z) = sum_(k = 0)^oo a_k z^k => 1 / (2 pi) integral_0^(2 pi) abs(f(r e^(i theta)))^2 dif theta = sum_(k = 0)^oo abs(a_k r^k)^2"
+
+[[problem]]
+title = "Fubini's Theorem"
+source = "integral_X (integral_Y f(x, y) dif y) dif x = integral_Y (integral_X f(x, y) dif x) dif y = integral_(X times Y) f(x,y) dif (x,y)"
+
+[[problem]]
+title = "Coarea Formula"
+source = "integral_Omega g(x) abs(nabla u(x)) dif x = integral_RR (integral_(u^(-1)(t)) g(x) H_(n - 1)(x)) dif t"
+
+[[problem]]
+title = "Equation of a Torus"
+source = "(sqrt(x^2 + y^2) - R)^2 + z^2 = r"
+
+[[problem]]
+title = "Ampère-Maxwell law"
+source = "nabla times upright(bold(B)) = mu_0 (upright(bold(J)) + epsilon.alt_0 (partial upright(bold(E))) / (partial t))"
+
+[[problem]]
+title = "Gauss's Flux Theorem (differential form)"
+source = "nabla dot upright(bold(E)) = rho / epsilon.alt_0"
+
+[[problem]]
+title = "Gauss's law for Magnetism"
+source = "nabla dot upright(bold(B)) = 0"
+
+[[problem]]
+title = "Maxwell–Faraday equation"
+source = "nabla times upright(bold(E)) = -(partial upright(bold(B))) / (partial t)"
+
+[[problem]]
+title = "Eigenvalue Formula"
+source = "det(upright(bold(A)) - lambda upright(bold(I))) = 0"
+
+[[problem]]
+title = "Collatz Function"
+source = "f(n) = cases(n \\/ 2 & quad n equiv 0 med (mod med 2), 3 n + 1 & quad n equiv 1 med (mod med 2))"
+
+[[problem]]
+title = "Gamma Function"
+source = "Gamma(z) = integral_0^oo x^(z - 1) e^(-x) dif x"
+
+[[problem]]
+title = "Laplace Transform"
+source = "cal(L){f}(s) = integral_0^oo f(t) e^(-s t) dif t"
+
+[[problem]]
+title = "Taylor Series"
+source = "f(x) = sum_(n = 0)^oo (f^((n))(a)) / n! (x - a)^n"
+
+[[problem]]
+title = "General Solution to First-Order Linear Differential Equations"
+source = "y = e^(-integral P(x) dif x) integral Q(x) e^(integral P(x) dif x) dif x + C e^(-integral P(x) dif x)"
+
+[[problem]]
+title = "Fibonacci Binomial Coefficients Identity"
+source = "F_(n + 1) = binom(n, 0) + binom(n - 1, 1) + binom(n - 2, 2) + dots.c + binom(n - floor(n \\/ 2), floor(n \\/ 2))"
+
+[[problem]]
+title = "Bellman Optimality Equation"
+source = "V^(pi *)(s)= max_a { R(s, a) + gamma sum_(s') P(s'|s, a) V^(pi *)(s') }"
+
+[[problem]]
+title = "Definition of a Well-founded Relation"
+source = "(forall S subset.eq X) [S != emptyset => (exists m in S) (forall s in S) not (s R m)]"
+
+[[problem]]
+title = "Estimation Lemma"
+source = "abs(integral_(gamma) f(z) dif z) <= L(gamma) sup_gamma abs(f)"
+
+[[problem]]
+title = "Chaitin's Constant"
+source = "Omega_F = sum_(p in P_F) 2^(-abs(p))"
+
+[[problem]]
+title = "Cauchy's Differentiation Formula"
+source = "f^((n))(a) = n! / (2 pi i) integral.cont_gamma f(z) / ((z - a)^(n + 1)) dif z"
+
+[[problem]]
+title = "Defintion of the Quasi-Stationary Distribution"
+source = "forall B in cal(B) (cal(X)^a), forall t >= 0, P_nu (Y_t in B, T > t) = nu(B) P_nu (T > t)"
+
+[[problem]]
+title = "Addition of Sound Levels in Decibels"
+source = "L_(a b) = 10 log_10 (10^(L_a \\/ 10) + 10^(L_b \\/10))"
+
+[[problem]]
+title = "Fast-Growing Hierarchy"
+source = "f_alpha (n)= cases(n + 1 & quad alpha = 0, f_beta (n) & quad alpha = beta + 1, f_(alpha[n])(n) & quad \"else\")"
+
+[[problem]]
+title = "Feigenbaum-Cvitanović Functional Equation"
+source = "g(g(x)) = - 1 / alpha g(alpha x)"
+
+[[problem]]
+title = "Feynman's Trick"
+source = "integral_0^pi ln (1 - 2 alpha cos x + alpha^2) dif x = 2 pi ln abs(alpha)"
+
+[[problem]]
+title = "Lorentz Factor"
+source = "gamma = 1 / sqrt(1 - v^2 / c^2)"
+
+[[problem]]
+title = "Time Dilation"
+source = "Delta t = (Delta t_0) / sqrt(1 - v^2 / c^2)"
+
+[[problem]]
+title = "Gauss's Flux Theorem (integral form)"
+source = "integral.surf_S upright(bold(E)) dot dif upright(bold(A)) = Q / epsilon.alt_0"
+
+[[problem]]
+title = "Doppler Effect"
+source = "f_o / f_s = lambda_s / lambda_o = (v plus.minus v_o) / (v minus.plus v_s)"
+
+[[problem]]
+title = "Bernoulli's Equation"
+source = "P_1 + rho.alt g y_1 + 1 / 2 rho.alt v_1^2 = P_2 + rho.alt g y_2 + 1 / 2 rho.alt v_2^2"
+
+[[problem]]
+title = "Relation between K_p and K_c"
+source = "K_p = K_c (R T)^(Delta n)"
+
+[[problem]]
+title = "Van der Waals Equation"
+source = "(P + a n^2 / V^2) (V - n b) = n R T"
+
+[[problem]]
+title = "Maxwell-Boltzmann Distribution"
+source = "f(v) = 4 pi v^2 (m / (2 pi k T))^(3 \\/ 2) e^(- (m v^2) / (2 k_B T))"
+
+[[problem]]
+title = "Cayley-Hamilton Theorem"
+source = "p(lambda) = det(lambda upright(bold(I))_n - upright(bold(A))) => p(upright(bold(A))) = 0"
+
+[[problem]]
+title = "Chudnovsky's Formula for pi"
+source = "1 / pi = 12 sum_(k = 0)^oo ((- 1)^k (6 k)! (545140134 k + 13591409)) / ((3 k)! (k!)^3 (640320)^(3 k + 3 \\/ 2))"
+
+[[problem]]
+title = "Residue Theorem"
+source = "1 / (2 pi i) integral.cont_gamma f(z) dif z = sum_(p \"pole\") upright(bold(I))(gamma, p) op(\"Res\")(f, p)"
+
+[[problem]]
+title = "The Fundamental Group of the Circle"
+source = "pi_1 (S^1) tilde.equiv ZZ"
+
+[[problem]]
+title = "Definition of the Operator Norm on a Finite Dimensional Banach Space."
+source = "{ norm(T(x))' / norm(x) : x != 0, x in X } equiv { norm(T(x))' : norm(x) = 1, x in X }"
+
+[[problem]]
+title = "Green's Theorem"
+source = "integral.cont_C (L dif x + M dif y) = integral.double_D ((partial M) / (partial x) - (partial L) / (partial y)) dif x dif y"
+
+[[problem]]
+title = "Portfolio Variance"
+source = "sigma^2_z = (sum_(i = 1)^n w^2_i sigma^2_i) + 2 (sum_(i = 1)^(n - 1) sum_(j = i + 1)^n w_i w_j sigma_(i, j))"
+
+[[problem]]
+title = "Newton's Method"
+source = "x_(n + 1) = x_n - f(x_n) / (f'(x_n))"
+
+[[problem]]
+title = "Shannon Entropy"
+source = "H(X) = - sum_(i = 1)^n P(x_i) log_2 P(x_i)"
+
+[[problem]]
+title = "Pinsker's inequality"
+source = "norm(mu - nu)_\"TV\" <= sqrt(2 D_\"KL\" (mu||nu))"
+
+[[problem]]
+title = "Condtional Entropy"
+source = "upright(H)(Y|X) = -sum_(x in cal(X), y in cal(Y)) p(x, y) log p(x, y) / p(x)"
+
+[[problem]]
+title = "Beta Function"
+source = "B(x, y) = integral_0^1 t^(x - 1) (1 - t)^(y - 1) dif t"
+
+[[problem]]
+title = "Moist Adiabatic Lapse Rate"
+source = "Gamma_\"w\" = - (dif T) / (dif z) = g ((1 + (H_\"v\" r) / (R_\"sd\" T))) / ((c_\"pd\" + (H_\"v\"^2 r) / (R_\"sw\" T^2)))"
+
+[[problem]]
+title = "Cardano's Formula"
+source = "root(3, - q / 2 + sqrt(q^2 / 4) + p^3 / 27) + root(3, - q / 2 - sqrt(q^2 / 4) + p^3 / 27)"
+
+[[problem]]
+title = "General Cubic Formula"
+source = "C = root(3, (Delta_1 plus.minus sqrt(Delta_1^2 - 4 Delta_0^3)) / 2)"
+
+[[problem]]
+title = "Tangent Sum of Angles Formula"
+source = "tan(alpha plus.minus beta) = (tan(alpha) plus.minus tan(beta)) / (1 minus.plus tan(alpha) tan (beta))"
+
+[[problem]]
+title = "Inner Product of Continuous Complex Valued Functions"
+source = "chevron.l f, g chevron.r = integral_0^(2 pi) f(t) overline(g(t)) dif t"
+
+[[problem]]
+title = "Definition of a Psuedorandom Generator"
+source = "abs(op(\"Pr\")_(x <- {0, 1}^k) [cal(A)(G(x)) = 1] - op(\"Pr\")_(x <- {0, 1}^(p(k))) [cal(A)(x) = 1 ]) < mu (k)"
+
+[[problem]]
+title = "Generalized Stokes' theorem"
+source = "integral_(partial M) omega = integral_M dif omega"
+
+[[problem]]
+title = "Cartan's magic formula"
+source = "cal(L)_X = dif compose iota_X + iota_X compose dif"
+
+[[problem]]
+title = "Ridge Regression"
+source = "ell(upright(bold(w))) = 1 / N norm(upright(bold(X w)) - upright(bold(y)))_2^2 + lambda norm(upright(bold(w)))_2^2"
+
+[[problem]]
+title = "Evidence Lower Bound (ELBO)"
+source = "L(phi.alt, theta; x) = EE_(z tilde q_phi.alt (dot|x)) [ ln (p_theta (x, z)) / (q_phi.alt (z | x))]"
+
+[[problem]]
+title = "Langevin Dynamics (Overdamped)"
+source = "dif x_t = -nabla U(x_t) dif t + sqrt(2 beta^(-1)) dif W_t"
+[[problem]]
+title = "Schrodinger's Equation"
+source = "i planck partial / (partial t) Psi = H Psi"
+
+[[problem]]
+title = "Heisenberg's Uncertainty Principle"
+source = "Delta x Delta p approx planck"
+
+[[problem]]
+title = "Principle of Inclusion-Exclusion"
+source = "abs(A union B) = abs(A) + abs(B) - abs(A inter B)"
+
+[[problem]]
+title = "General Principle of Inclusion-Exclusion"
+source = "abs(union.big_(i = 1)^n A_i) = sum_(emptyset != J subset.eq {1, ..., n}) (-1)^(abs(J) + 1) abs(inter.big_(j in J) A_j)"
+
+[[problem]]
+title = "Spectral Decomposition"
+source = "A = mat(|, |,, |; upright(bold(v))_1, upright(bold(v))_2, dots.c, upright(bold(v))_n; |, |,, |) mat(lambda_1,,, ; , lambda_2,, ; ,, dots.down, ; ,,, lambda_n)mat(|, |,, |; upright(bold(v))_1, upright(bold(v))_2, dots.c, upright(bold(v))_n; |, |,, |)"
+
+[[problem]]
+title = "Wigner Transform of the Density Matrix"
+source = "W(x, p) = 1 / (pi planck) integral_(-oo)^oo chevron.l x + y|hat(rho)|x - y chevron.r e^(- 2 i p y / planck) y"
+
+[[problem]]
+title = "Power Mean"
+source = "M_r (x_1, x_2, ..., x_n) = cases((1/n sum_(i = 1)^n x_i^r)^(1 \\/ r) & quad r != 0, root(n, product_(i = 1)^n x_i) & quad r = 0)"
+
+[[problem]]
+title = "Alternating Harmonic Series"
+source = "1 - 1 / 2 + 1 / 3 - 1 / 4 + 1 / 5 - dots.c = ln 2"
+
+[[problem]]
+title = "Mertens' therorem"
+source = "product_(p in PP)^n (1 - 1/p) ~ e^(-gamma) / (log n)"
+
+[[problem]]
+title = "Rademacher Complexity"
+source = "cal(R)_n (cal(F)) = EE_epsilon.alt [sup_(f in cal(F)) 1 / n sum_(i = 1)^n epsilon.alt_i f(x_i) ]"
+
+[[problem]]
+title = "Definition of the Euler Totient Function"
+source = "phi(n) = abs({k in NN_(<= n) | gcd(k, n) = 1}) = n product_(p divides n) (1 - 1 / p)"
+
+[[problem]]
+title = "Wigner Semicircle Distribution"
+source = "f(x) = cases(2 / (pi R^2) sqrt(R^2 - x^2) & quad -R <= x <= R, 0 & quad abs(x) > R)"
+
+[[problem]]
+title = "Quaternion Multiplication Formula"
+source = "upright(bold(i))^2 = upright(bold(j))^2 = upright(bold(k))^2 = upright(bold(i j k)) = -1"
+
+[[problem]]
+title = "Dirac Equation"
+source = "i planck gamma^mu partial_mu psi-  m c psi = 0"
+
+[[problem]]
+title = "Center of Mass"
+source = "upright(bold(R)) = 1 / M integral.triple_Q rho(upright(bold(r))) upright(bold(r)) dif V"
+
+[[problem]]
+title = "Sackur-Tetrode equation"
+source = "S / (k_B N) = ln [V / N ((4 pi m) / (3 h^2) U / N)^(3 \\/ 2)] + 5 / 2"
+
+[[problem]]
+title = "Force-Potential Relation"
+source = "upright(bold(F)) = - (partial U) / (partial x) hat(upright(bold(i))) - (partial U) / (partial y) hat(upright(bold(j))) - (partial U) / (partial z) hat(upright(bold(k))) = -harpoon(nabla)(U)"
+
+[[problem]]
+title = "Riemann Zeta Function"
+source = "zeta(s) = 1 / Gamma(s) integral_0^oo x^(s - 1) / (e^x - 1) dif x"

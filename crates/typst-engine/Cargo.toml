@@ -1,0 +1,19 @@
+[package]
+name = "typst-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+typst = "0.15"
+typst-layout = "0.15"
+typst-svg = "0.15"
+typst-assets = { version = "0.15", features = ["fonts"] }
+regex = "1"
+serde = { workspace = true }
+
+[dev-dependencies]
+# Used by the `gen_problems` example to emit `assets/problems.toml`.
+toml = "0.8"
+# LaTeX -> Typst converter for the problem generator. Dev-only, so it never
+# enters the app/WASM build. `default-features = false` drops its CLI (clap).
+tylax = { git = "https://github.com/scipenai/tylax", tag = "v0.3.6", default-features = false }
