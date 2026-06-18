@@ -7,6 +7,10 @@ members = [
     "crates/server",
 ]
 
+# Shared package metadata; each crate opts in with `<field>.workspace = true`.
+[workspace.package]
+license = "MIT OR Apache-2.0"
+
 [workspace.dependencies]
 # Internal crates
 app = { path = "crates/app" }
