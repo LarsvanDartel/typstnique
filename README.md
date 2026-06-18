@@ -125,6 +125,74 @@ cargo leptos build --release
 The leaderboard database is created automatically at `typstnique.db`
 (`DATABASE_URL` overrides the location; it defaults in the dev shell).
 
+## Self-hosting
+
+The flake builds the whole app (server binary + client bundle) and ships a
+NixOS module, so you can host it straight from your config.
+
+Flake outputs:
+
+- `packages.${system}.default` — the built server plus its `share/typstnique/site`
+  assets.
+- `apps.${system}.default` — a wrapper that points Leptos at the bundled site and
+  runs the server. Try it without installing anything:
+
+  ```sh
+  nix run github:LarsvanDartel/typstnique     # serves http://127.0.0.1:3000
+  ```
+
+  Override the bind address with `LEPTOS_SITE_ADDR` (e.g.
+  `LEPTOS_SITE_ADDR=0.0.0.0:8080 nix run …`).
+
+- `nixosModules.default` — the `services.typstnique` module below.
+
+### NixOS module
+
+Add the flake as an input and import the module:
+
+```nix
+{
+  inputs.typstnique.url = "github:LarsvanDartel/typstnique";
+
+  outputs = { nixpkgs, typstnique, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      # …
+      modules = [
+        typstnique.nixosModules.default
+        {
+          services.typstnique = {
+            enable = true;
+            address = "127.0.0.1"; # bind loopback; put nginx/caddy in front
+            port = 3000;
+            openFirewall = false; # set true to expose the port directly
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+This runs the server as a hardened systemd service under a dynamic user, with the
+SQLite leaderboard persisted in `/var/lib/typstnique` (its `StateDirectory`).
+
+Options (all under `services.typstnique`):
+
+| Option            | Default                                  | Description                                          |
+| ----------------- | ---------------------------------------- | ---------------------------------------------------- |
+| `enable`          | `false`                                  | Enable the service.                                  |
+| `package`         | this flake's build for the host system   | Package to run.                                      |
+| `address`         | `"127.0.0.1"`                            | Bind address (`"0.0.0.0"` for all interfaces).       |
+| `port`            | `3000`                                   | Listen port.                                         |
+| `databasePath`    | `"/var/lib/typstnique/typstnique.db"`    | SQLite database path (created on first start).       |
+| `logLevel`        | `"info,hyper=warn,sqlx=warn,tower=warn"` | `RUST_LOG` / tracing filter.                         |
+| `environmentFile` | `null`                                   | Optional systemd `EnvironmentFile` for secrets.      |
+| `openFirewall`    | `false`                                  | Open `port` in the firewall.                         |
+
+The build relies on nixpkgs' `cargo-leptos` (built with `no_downloads`), so the
+`sass`, `wasm-bindgen`, and `wasm-opt` helpers come from the Nix-provided tools
+rather than being fetched at build time.
+
 ## Notes / known sharp edges
 
 - **`wasm-bindgen` version:** the `wasm-bindgen` pin in the root `Cargo.toml`

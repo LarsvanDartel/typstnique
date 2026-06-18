@@ -27,6 +27,7 @@
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
+        inherit (pkgs) lib;
 
         # Stable Rust for building (wasm target for the Leptos frontend).
         # rustfmt is supplied separately (nightly) below so the strict
@@ -43,6 +44,100 @@
         # Nightly rustfmt + cargo-fmt so `cargo fmt` honours the unstable options
         # in rustfmt.toml. Picks the latest nightly that actually ships rustfmt.
         rustfmtNightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.rustfmt);
+
+        # Build cargo/rustc with our pinned toolchain (it carries the wasm32
+        # target cargo-leptos needs for the hydrate bundle).
+        rustPlatform = pkgs.makeRustPlatform {
+          cargo = rustToolchain;
+          rustc = rustToolchain;
+        };
+
+        # The full-stack build: the SSR server binary plus the compiled client
+        # bundle (wasm + JS + CSS), produced in one shot by cargo-leptos.
+        # nixpkgs' cargo-leptos is built with the `no_downloads` feature, so it
+        # uses sass / wasm-bindgen / wasm-opt from PATH (provided as native build
+        # inputs) instead of fetching them — the build stays offline & pure.
+        typstnique = rustPlatform.buildRustPackage {
+          pname = "typstnique";
+          version = "0.1.0";
+
+          # Whole repo (cargo-leptos needs scss/public, and the binary embeds
+          # assets/problems.toml + migrations via include_str!/sqlx::migrate!),
+          # minus build outputs and the local database.
+          src = lib.cleanSourceWith {
+            src = ./.;
+            filter =
+              path: _type:
+              let
+                b = baseNameOf (toString path);
+              in
+              !(builtins.elem b [
+                "target"
+                "result"
+                "dist"
+                ".direnv"
+                ".git"
+              ])
+              && !lib.hasSuffix ".db" b;
+          };
+
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            # tylax is a git dependency (dev-only); pin its source hash.
+            outputHashes = {
+              "tylax-0.3.6" = "sha256-UdFO378x/8ewmjvTH1c6aUGGLIa8NL0n7VIvtZeRdQw=";
+            };
+          };
+
+          nativeBuildInputs = [
+            pkgs.cargo-leptos
+            pkgs.wasm-bindgen-cli
+            pkgs.binaryen # wasm-opt
+            pkgs.dart-sass # sass
+            pkgs.pkg-config
+          ];
+          buildInputs = [ pkgs.openssl ];
+
+          # Drive the dual (server + wasm) build through cargo-leptos rather than
+          # the default single `cargo build`.
+          buildPhase = ''
+            runHook preBuild
+            cargo leptos build --release -vv
+            runHook postBuild
+          '';
+
+          # Install the server binary and the generated site it serves at runtime.
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/bin $out/share/typstnique
+            binpath=$(find target -type f -name server -path '*release*' -perm -u+x | head -n1)
+            install -Dm755 "$binpath" $out/bin/typstnique
+            cp -r target/site $out/share/typstnique/site
+            runHook postInstall
+          '';
+
+          # cargo-leptos already drove the build; the default check phase would
+          # re-run plain `cargo test` with the wrong per-crate feature set.
+          doCheck = false;
+
+          env.OPENSSL_NO_VENDOR = 1;
+
+          meta = {
+            description = "A Typst typesetting speed game (full-stack Rust)";
+            mainProgram = "typstnique";
+          };
+        };
+
+        # Wrapper so `nix run` just works: point Leptos at the bundled site and
+        # bind locally by default, while leaving every var overridable from the
+        # environment (the NixOS module sets them explicitly).
+        typstnique-app = pkgs.writeShellScriptBin "typstnique" ''
+          export LEPTOS_OUTPUT_NAME="''${LEPTOS_OUTPUT_NAME:-typstnique}"
+          export LEPTOS_SITE_ROOT="''${LEPTOS_SITE_ROOT:-${typstnique}/share/typstnique/site}"
+          export LEPTOS_SITE_PKG_DIR="''${LEPTOS_SITE_PKG_DIR:-pkg}"
+          export LEPTOS_SITE_ADDR="''${LEPTOS_SITE_ADDR:-127.0.0.1:3000}"
+          exec ${lib.getExe typstnique} "$@"
+        '';
 
         # Pre-commit checks, managed by Nix. Run automatically on `git commit`
         # (the dev shell installs the hook), or all at once with
@@ -82,6 +177,16 @@
         };
       in
       {
+        packages = {
+          default = typstnique;
+          typstnique = typstnique;
+        };
+
+        apps.default = {
+          type = "app";
+          program = "${typstnique-app}/bin/typstnique";
+        };
+
         checks.pre-commit-check = preCommitCheck;
 
         devShells.default = pkgs.mkShell {
@@ -127,5 +232,10 @@
           ];
         };
       }
-    );
+    )
+    // {
+      # System-independent: the NixOS module exposing `services.typstnique`.
+      # Import it in your host config and set `services.typstnique.enable = true`.
+      nixosModules.default = import ./nix/module.nix self;
+    };
 }
