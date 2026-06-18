@@ -12,6 +12,10 @@ typst-engine = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }
 toml = "0.8"
+# Nav icons. `icondata` is restricted to the Feather set (github/sun/moon) to
+# avoid compiling every bundled icon pack.
+leptos_icons = "0.7"
+icondata = { version = "0.7", default-features = false, features = ["feather"] }
 # `Storage` for theme persistence; `HtmlTextAreaElement` for the editor.
 web-sys = { version = "0.3", features = ["Storage", "HtmlTextAreaElement"] }
 js-sys = "0.3"
