@@ -330,6 +330,14 @@ h1 {
   &::placeholder {
     color: var(--muted);
   }
+
+  // Once the game is over the editor is disabled; dim it and block the caret so
+  // it's clearly read-only.
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    caret-color: transparent;
+  }
 }
 
 // Typst highlight token colors (typst-syntax emits `typ-*` classes). Tuned for
@@ -573,6 +581,29 @@ table {
       background: var(--bg);
       filter: none;
     }
+  }
+}
+
+// ── Game-over bar ─────────────────────────────────────────────────────────
+// Shown after the summary popup is dismissed so the player can always restart.
+.game-over-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 6px 24px var(--shadow);
+  z-index: 10;
+
+  .game-over-label {
+    font-weight: 600;
+    color: var(--muted);
   }
 }
 

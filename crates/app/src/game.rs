@@ -106,7 +106,12 @@ struct GameState {
     score: RwSignal<u32>,
     solved: RwSignal<u32>,
     time_left: RwSignal<i32>,
+    /// The game has ended (timer hit zero). Stays true until a restart, so the
+    /// editor stays disabled even while the summary popup is dismissed.
     game_over: RwSignal<bool>,
+    /// Whether the end-of-game summary popup is currently shown. Toggled
+    /// independently of `game_over` so closing it doesn't restart the game.
+    summary_open: RwSignal<bool>,
     name: RwSignal<String>,
     show_answer: RwSignal<bool>,
     submitted: RwSignal<bool>,
@@ -130,6 +135,7 @@ impl GameState {
             solved: RwSignal::new(0),
             time_left: RwSignal::new(if timed { 180 } else { 0 }),
             game_over: RwSignal::new(false),
+            summary_open: RwSignal::new(false),
             name: RwSignal::new(String::new()),
             show_answer: RwSignal::new(false),
             submitted: RwSignal::new(false),
@@ -170,6 +176,7 @@ fn wire_session(state: GameState, start: StartAction, ta_ref: NodeRef<Textarea>)
                 state.submitted.set(false);
                 state.submit_err.set(None);
                 state.game_over.set(false);
+                state.summary_open.set(false);
                 if let Some(ta) = ta_ref.get_untracked() {
                     ta.set_value("");
                 }
@@ -283,6 +290,7 @@ fn wire_timer(state: GameState) {
                 if t <= 1 {
                     state.time_left.set(0);
                     state.game_over.set(true);
+                    state.summary_open.set(true);
                 } else {
                     state.time_left.set(t - 1);
                 }
@@ -388,6 +396,7 @@ fn Board(
                         node_ref=ta_ref
                         spellcheck="false"
                         autocomplete="off"
+                        prop:disabled=move || state.game_over.get()
                         on:input=on_input
                         on:keydown=on_keydown
                         on:scroll=on_scroll
@@ -395,7 +404,7 @@ fn Board(
                     ></textarea>
                 </div>
                 <div class="actions">
-                    <button class="ghost" on:click=on_skip>"Skip"</button>
+                    <button class="ghost" prop:disabled=move || state.game_over.get() on:click=on_skip>"Skip"</button>
                     {(!state.timed).then(|| view! {
                         <button class="ghost" on:click=move |_| state.show_answer.update(|s| *s = !*s)>
                             {move || if state.show_answer.get() { "Hide answer" } else { "Show answer" }}
@@ -432,6 +441,7 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
     let play_again = move |_| {
         state.submitted.set(false);
         state.submit_err.set(None);
+        state.summary_open.set(false);
         if state.server_scored {
             state.game_over.set(false);
             start.dispatch(()); // fresh session; install effect resets the rest
@@ -449,10 +459,12 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
     };
 
     view! {
-        {move || state.game_over.get().then(|| view! {
+        // The summary popup. Closing it only hides the popup — the game stays
+        // over (editor disabled) and the bar below offers a way back.
+        {move || state.summary_open.get().then(|| view! {
             <div class="modal">
                 <div class="modal-box">
-                    <button class="modal-close" title="Close" on:click=move |_| state.game_over.set(false)>"×"</button>
+                    <button class="modal-close" title="Close" on:click=move |_| state.summary_open.set(false)>"×"</button>
                     <h2>"Time's up!"</h2>
                     <p>
                         "You scored " <b>{move || state.score.get()}</b>
@@ -482,6 +494,15 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
                         <A href="/leaderboard">"Leaderboard"</A>
                     </div>
                 </div>
+            </div>
+        })}
+        // Persistent bar shown once the game is over and the popup is dismissed,
+        // so the player is never stranded without a way to restart.
+        {move || (state.game_over.get() && !state.summary_open.get()).then(|| view! {
+            <div class="game-over-bar">
+                <span class="game-over-label">"Game over · " {move || state.score.get()} " pts"</span>
+                <button class="ghost" on:click=move |_| state.summary_open.set(true)>"Summary"</button>
+                <button on:click=play_again>"Play again"</button>
             </div>
         })}
     }
