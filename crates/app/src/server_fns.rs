@@ -60,12 +60,15 @@ pub struct InputMeta {
     pub min_interval_ms: u32,
 }
 
-/// Server response to a solve attempt; `score`/`solved` are the authoritative totals.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+/// Server response to a solve attempt. `score`/`solved` are the authoritative
+/// totals; `request_id` correlates this attempt with the server's trace log, so
+/// the client can log it (e.g. on a rejection) and we can look up the reason.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SolveResult {
     pub accepted: bool,
     pub score: u32,
     pub solved: u32,
+    pub request_id: String,
 }
 
 #[cfg(feature = "ssr")]
@@ -103,6 +106,13 @@ pub mod ssr {
         pub problem_index: usize,
         pub points: u32,
         pub server_elapsed_ms: Option<u32>,
+    }
+
+    /// The decision made by [`credit_solve`], carrying either the recorded solve
+    /// or the (loggable) reason it was rejected.
+    pub enum SolveOutcome {
+        Accepted(SolveRecord),
+        Rejected(&'static str),
     }
 
     /// In-memory session store. Ephemeral: cleared on restart, single-instance only.
@@ -156,49 +166,33 @@ pub mod ssr {
         answer: &str,
         meta: &super::InputMeta,
         server_elapsed_ms: Option<u32>,
-    ) -> (super::SolveResult, Option<SolveRecord>) {
-        let rejected = (
-            super::SolveResult {
-                accepted: false,
-                score: s.score,
-                solved: s.solved,
-            },
-            None,
-        );
-
+    ) -> SolveOutcome {
         if s.start.elapsed().as_secs() > GAME_SECONDS + GRACE_SECONDS {
-            return rejected; // game already over
+            return SolveOutcome::Rejected("game already over");
         }
         let Some(problem) = s.problems.get(index).cloned() else {
-            return rejected;
+            return SolveOutcome::Rejected("invalid problem index");
         };
         if s.done.contains(&index) {
-            return rejected; // can't farm the same problem
+            return SolveOutcome::Rejected("already solved");
         }
-        if !plausible(meta, problem.source.chars().count(), server_elapsed_ms) {
-            return rejected;
+        if let Some(reason) = plausible(meta, answer.len(), server_elapsed_ms) {
+            return SolveOutcome::Rejected(reason);
         }
         if !typst_engine::matches(&problem.source, answer, problem.kind) {
-            return rejected;
+            return SolveOutcome::Rejected("answer does not match");
         }
 
         s.done.insert(index);
         let points = typst_engine::difficulty_score(&problem.source);
         s.score += points;
         s.solved += 1;
-        (
-            super::SolveResult {
-                accepted: true,
-                score: s.score,
-                solved: s.solved,
-            },
-            Some(SolveRecord {
-                problem_title: problem.title,
-                problem_index: index,
-                points,
-                server_elapsed_ms,
-            }),
-        )
+        SolveOutcome::Accepted(SolveRecord {
+            problem_title: problem.title,
+            problem_index: index,
+            points,
+            server_elapsed_ms,
+        })
     }
 
     /// Heuristic "did a human type this?" check on the reported input metadata,
@@ -206,37 +200,39 @@ pub mod ssr {
     ///
     /// All inputs are client-reportable, so this isn't bulletproof — it raises
     /// the bar against trivial automation and paste-the-answer.
+    /// Returns `None` if the attempt looks human, or `Some(reason)` describing
+    /// why it was rejected (logged server-side for tracing).
     #[must_use]
     pub fn plausible(
         meta: &super::InputMeta,
         answer_len: usize,
         server_elapsed_ms: Option<u32>,
-    ) -> bool {
+    ) -> Option<&'static str> {
         // Took at least a moment — not an instant script.
         if meta.elapsed_ms < 400 {
-            return false;
+            return Some("too fast (<400ms)");
         }
         // Actually typed (roughly) the whole answer; a paste reports ~no keystrokes.
         if (meta.typed_chars as usize) + 2 < answer_len {
-            return false;
+            return Some("too few keystrokes (paste?)");
         }
         // Below a superhuman typing speed.
         let seconds = f64::from(meta.elapsed_ms) / 1000.0;
         if f64::from(meta.typed_chars) / seconds > 25.0 {
-            return false;
+            return Some("superhuman typing speed");
         }
         // Timing cross-check: the client can't truthfully claim it spent *more*
         // time than the server observed since it sent the problem.
         if let Some(server_ms) = server_elapsed_ms {
             if meta.elapsed_ms > server_ms + ELAPSED_SLACK_MS {
-                return false;
+                return Some("claimed time exceeds server window");
             }
         }
         // Robotic, near-constant keystroke rhythm over many keys.
         if meta.keydowns > 8 && meta.stddev_interval_ms < 5 {
-            return false;
+            return Some("near-constant keystroke rhythm (bot)");
         }
-        true
+        None
     }
 
     /// Persist an accepted solve with its telemetry.
@@ -335,7 +331,7 @@ pub async fn get_problem(session: String, index: usize) -> Result<Problem, Serve
     let idx = index % n;
     s.fetched_at.insert(idx, std::time::Instant::now());
     let problem = s.problems[idx].clone();
-    tracing::debug!(request_id, session, index = idx, "fetch problem");
+    tracing::debug!(request_id, session, index = idx, title = %problem.title, "fetch problem");
     Ok(problem)
 }
 
@@ -347,12 +343,20 @@ pub async fn solve(
     answer: String,
     meta: InputMeta,
 ) -> Result<SolveResult, ServerFnError> {
-    use ssr::{credit_solve, insert_solve, new_request_id, pool, req_err, sessions};
+    use ssr::{credit_solve, insert_solve, new_request_id, pool, req_err, sessions, SolveOutcome};
 
     let request_id = new_request_id();
+    tracing::debug!(
+        request_id,
+        session,
+        index,
+        typed_chars = meta.typed_chars,
+        client_ms = meta.elapsed_ms,
+        "solve received"
+    );
 
     // Synchronous credit while holding the session lock.
-    let (result, record) = {
+    let (outcome, score, solved, server_elapsed_ms) = {
         let store = sessions()?;
         let mut guard = store.lock().expect("session lock");
         let s = guard
@@ -362,31 +366,57 @@ pub async fn solve(
             .fetched_at
             .get(&(index % s.problems.len().max(1)))
             .map(|t| u32::try_from(t.elapsed().as_millis()).unwrap_or(u32::MAX));
-        credit_solve(s, index, &answer, &meta, server_elapsed_ms)
+        let outcome = credit_solve(s, index, &answer, &meta, server_elapsed_ms);
+        (outcome, s.score, s.solved, server_elapsed_ms)
     };
 
-    tracing::debug!(
-        request_id,
-        session,
-        index,
-        accepted = result.accepted,
-        score = result.score,
-        "solve"
-    );
-
-    // Record accepted solves for later analysis (best-effort; never fail the call).
-    if let Some(rec) = record {
-        match pool() {
-            Ok(pool) => {
-                if let Err(e) = insert_solve(&pool, &session, &rec, &meta).await {
-                    tracing::error!(request_id, session, error = %e, "failed to record solve");
+    let accepted = matches!(outcome, SolveOutcome::Accepted(_));
+    match outcome {
+        SolveOutcome::Accepted(rec) => {
+            tracing::info!(
+                request_id,
+                session,
+                index,
+                title = %rec.problem_title,
+                points = rec.points,
+                score,
+                solved,
+                client_ms = meta.elapsed_ms,
+                server_ms = ?server_elapsed_ms,
+                "solve accepted"
+            );
+            // Record the solve for later analysis (best-effort; never fail the call).
+            match pool() {
+                Ok(pool) => {
+                    if let Err(e) = insert_solve(&pool, &session, &rec, &meta).await {
+                        tracing::error!(request_id, session, error = %e, "failed to record solve");
+                    }
                 }
+                Err(e) => tracing::error!(request_id, error = %e, "no pool to record solve"),
             }
-            Err(e) => tracing::error!(request_id, error = %e, "no pool to record solve"),
+        }
+        SolveOutcome::Rejected(reason) => {
+            tracing::warn!(
+                request_id,
+                session,
+                index,
+                reason,
+                client_ms = meta.elapsed_ms,
+                server_ms = ?server_elapsed_ms,
+                typed_chars = meta.typed_chars,
+                keydowns = meta.keydowns,
+                stddev_interval_ms = meta.stddev_interval_ms,
+                "solve rejected"
+            );
         }
     }
 
-    Ok(result)
+    Ok(SolveResult {
+        accepted,
+        score,
+        solved,
+        request_id,
+    })
 }
 
 /// Finish a game: write the session's server-tracked score to the leaderboard.
@@ -433,6 +463,7 @@ pub async fn top_scores() -> Result<Vec<ScoreEntry>, ServerFnError> {
     .await
     .map_err(|e| req_err(&request_id, &format!("database error: {e}")))?;
 
+    tracing::debug!(request_id, count = rows.len(), "leaderboard read");
     Ok(rows
         .into_iter()
         .map(|(name, score, problems_solved)| ScoreEntry {
@@ -445,7 +476,7 @@ pub async fn top_scores() -> Result<Vec<ScoreEntry>, ServerFnError> {
 
 #[cfg(all(test, feature = "ssr"))]
 mod tests {
-    use super::ssr::{credit_solve, plausible, sanitize_name, Session};
+    use super::ssr::{credit_solve, plausible, sanitize_name, Session, SolveOutcome};
     use super::InputMeta;
 
     fn good_meta(len: usize) -> InputMeta {
@@ -478,43 +509,87 @@ mod tests {
 
     #[test]
     fn plausible_accepts_human_typing() {
-        assert!(plausible(&good_meta(16), 16, Some(5000)));
+        assert!(plausible(&good_meta(16), 16, Some(5000)).is_none());
     }
 
     #[test]
-    fn plausible_rejects_paste_bots_and_forged_time() {
+    fn plausible_rejects_with_reasons() {
         // Instant.
-        assert!(!plausible(&InputMeta { elapsed_ms: 50, ..good_meta(16) }, 16, None));
-        // Pasted: barely any keystrokes for a long answer.
-        assert!(!plausible(&InputMeta { typed_chars: 1, ..good_meta(1) }, 30, None));
-        // Superhuman speed.
-        assert!(!plausible(&InputMeta { typed_chars: 500, elapsed_ms: 1000, ..good_meta(500) }, 30, None));
-        // Claims more time than the server observed (forged elapsed).
-        assert!(!plausible(&good_meta(16), 16, Some(300)));
-        // Robotic, zero-variance rhythm.
-        assert!(!plausible(
-            &InputMeta { keydowns: 20, stddev_interval_ms: 0, ..good_meta(16) },
+        assert!(plausible(
+            &InputMeta {
+                elapsed_ms: 50,
+                ..good_meta(16)
+            },
             16,
-            Some(5000)
-        ));
+            None
+        )
+        .is_some());
+        // Pasted: barely any keystrokes for a long answer.
+        assert!(plausible(
+            &InputMeta {
+                typed_chars: 1,
+                ..good_meta(1)
+            },
+            30,
+            None
+        )
+        .is_some());
+        // Superhuman speed.
+        assert!(plausible(
+            &InputMeta {
+                typed_chars: 500,
+                elapsed_ms: 1000,
+                ..good_meta(500)
+            },
+            30,
+            None
+        )
+        .is_some());
+        // Claims more time than the server observed (forged elapsed).
+        assert_eq!(
+            plausible(&good_meta(16), 16, Some(300)),
+            Some("claimed time exceeds server window")
+        );
+        // Robotic, zero-variance rhythm.
+        assert_eq!(
+            plausible(
+                &InputMeta {
+                    keydowns: 20,
+                    stddev_interval_ms: 0,
+                    ..good_meta(16)
+                },
+                16,
+                Some(5000)
+            ),
+            Some("near-constant keystroke rhythm (bot)")
+        );
     }
 
     #[test]
     fn credits_a_genuine_solve_once() {
         let mut s = session_with("a + b");
-        let (r, rec) = credit_solve(&mut s, 0, "a + b", &good_meta(5), Some(4200));
-        assert!(r.accepted && r.solved == 1 && r.score > 0 && rec.is_some());
-        // Re-solving the same problem earns nothing.
-        let (again, rec2) = credit_solve(&mut s, 0, "a + b", &good_meta(5), Some(4200));
-        assert!(!again.accepted && again.score == r.score && rec2.is_none());
+        let outcome = credit_solve(&mut s, 0, "a + b", &good_meta(5), Some(4200));
+        assert!(matches!(outcome, SolveOutcome::Accepted(_)) && s.solved == 1 && s.score > 0);
+        // Re-solving the same problem is rejected with a reason.
+        let again = credit_solve(&mut s, 0, "a + b", &good_meta(5), Some(4200));
+        assert!(matches!(again, SolveOutcome::Rejected("already solved")));
     }
 
     #[test]
     fn rejects_wrong_answer_and_paste() {
         let mut s = session_with("a + b");
-        assert!(!credit_solve(&mut s, 0, "a - b", &good_meta(5), Some(4200)).0.accepted);
-        let pasted = InputMeta { typed_chars: 1, ..good_meta(1) };
-        assert!(!credit_solve(&mut s, 0, "a + b", &pasted, Some(4200)).0.accepted);
+        assert!(matches!(
+            credit_solve(&mut s, 0, "a - b", &good_meta(5), Some(4200)),
+            SolveOutcome::Rejected("answer does not match")
+        ));
+        let pasted = InputMeta {
+            typed_chars: 1,
+            ..good_meta(1)
+        };
+        assert!(matches!(
+            credit_solve(&mut s, 0, "a + b", &pasted, Some(4200)),
+            SolveOutcome::Rejected(_)
+        ));
         assert_eq!(s.score, 0);
     }
 

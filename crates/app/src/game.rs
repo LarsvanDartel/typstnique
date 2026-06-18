@@ -180,12 +180,13 @@ fn wire_session(state: GameState, start: StartAction, ta_ref: NodeRef<Textarea>)
 fn wire_result_effects(state: GameState, solve_action: SolveAction, finish: FinishAction) {
     Effect::new(move |_| match solve_action.value().get() {
         Some(Ok(r)) => {
-            log::debug!(
-                "solve {}: score={} solved={}",
-                if r.accepted { "accepted" } else { "rejected" },
-                r.score,
-                r.solved
-            );
+            if r.accepted {
+                log::debug!("solve accepted: score={} solved={}", r.score, r.solved);
+            } else {
+                // Rejected (not an error): log the request id so it can be traced
+                // back to the server warn line that holds the full reason.
+                log::warn!("solve rejected by server (request_id={})", r.request_id);
+            }
             state.score.set(r.score);
             state.solved.set(r.solved);
         }
