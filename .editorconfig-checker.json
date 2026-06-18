@@ -1,0 +1,6 @@
+{
+  "//": "editorconfig-checker config. The indentation check only understands a single fixed indent width per file, so it false-flags legitimate continuation lines (Rust multi-line string literals, Markdown list/code nesting). rustfmt and nixfmt already enforce real indentation, so disable that one crude check while keeping charset, final-newline, and trailing-whitespace enforcement.",
+  "Disable": {
+    "Indentation": true
+  }
+}

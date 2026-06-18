@@ -8,6 +8,10 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -16,6 +20,7 @@
       nixpkgs,
       flake-utils,
       rust-overlay,
+      git-hooks,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -38,9 +43,58 @@
         # Nightly rustfmt + cargo-fmt so `cargo fmt` honours the unstable options
         # in rustfmt.toml. Picks the latest nightly that actually ships rustfmt.
         rustfmtNightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.rustfmt);
+
+        # Pre-commit checks, managed by Nix. Run automatically on `git commit`
+        # (the dev shell installs the hook), or all at once with
+        # `pre-commit run --all-files` / `nix flake check`.
+        preCommitCheck = git-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            # Rust formatting with the strict (nightly) rustfmt above.
+            rustfmt = {
+              enable = true;
+              packageOverrides = {
+                cargo = rustToolchain;
+                rustfmt = rustfmtNightly;
+              };
+            };
+            # Nix formatting (RFC style). Pin the package to `pkgs.nixfmt`
+            # directly: `pkgs.nixfmt-rfc-style` is now a deprecated alias for it
+            # and pulling it in emits an evaluation warning.
+            nixfmt-rfc-style = {
+              enable = true;
+              package = pkgs.nixfmt;
+            };
+            # Enforce the .editorconfig (skip lock files and the vendored JS).
+            editorconfig-checker = {
+              enable = true;
+              excludes = [
+                "\\.lock$"
+                "texnique_problems\\.js$"
+              ];
+            };
+            # Generic hygiene.
+            trim-trailing-whitespace.enable = true;
+            end-of-file-fixer.enable = true;
+            check-merge-conflicts.enable = true;
+            check-added-large-files.enable = true;
+          };
+        };
       in
       {
+        checks.pre-commit-check = preCommitCheck;
+
         devShells.default = pkgs.mkShell {
+          buildInputs = preCommitCheck.enabledPackages;
+          shellHook = ''
+            ${preCommitCheck.shellHook}
+            export DATABASE_URL="sqlite:typstnique.db"
+            echo "── typstnique dev shell ──────────────────────────────"
+            echo "  cargo leptos watch      # run dev server :3000"
+            echo "  cargo fmt               # strict (nightly) formatting"
+            echo "  pre-commit run --all    # run all pre-commit checks"
+            echo "──────────────────────────────────────────────────────"
+          '';
           packages = [
             rustToolchain
             rustfmtNightly # nightly `rustfmt`/`cargo fmt` (strict, unstable opts)
@@ -64,15 +118,6 @@
             pkgs.pkg-config
             pkgs.openssl
           ];
-
-          shellHook = ''
-            export DATABASE_URL="sqlite:typstnique.db"
-            echo "── typstnique dev shell ──────────────────────────────"
-            echo "  cargo leptos watch      # run dev server :3000"
-            echo "  cargo test -p typst-engine"
-            echo "  cargo leptos build --release"
-            echo "──────────────────────────────────────────────────────"
-          '';
         };
       }
     );
