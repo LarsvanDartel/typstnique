@@ -67,12 +67,42 @@ body {
     flex: 1;
   }
 
+  // Icon-only link (GitHub): inherits the nav link colours, just sized for SVG.
+  .nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+
+    svg {
+      display: block;
+    }
+
+    &:hover {
+      color: var(--text);
+    }
+  }
+
   .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
     background: transparent;
     border: 1px solid var(--border);
+    border-radius: 8px;
     color: var(--text);
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
+
+    svg {
+      display: block;
+    }
+
+    &:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
   }
 }
 
