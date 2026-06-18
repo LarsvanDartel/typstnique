@@ -89,6 +89,13 @@
           shellHook = ''
             ${preCommitCheck.shellHook}
             export DATABASE_URL="sqlite:typstnique.db"
+            # Default the server's `tracing` filter to debug for our crates while
+            # keeping noisy deps quiet (matches the fallback in server/src/main.rs,
+            # at debug instead of info). A real env var, so it reaches the server
+            # `cargo leptos watch` spawns — a `.cargo` `[env]` table would not, as
+            # cargo-leptos execs the binary directly rather than via `cargo run`.
+            # Set only if unset, so `RUST_LOG=trace cargo leptos watch` still wins.
+            export RUST_LOG="''${RUST_LOG:-debug,hyper=warn,sqlx=warn,tower=warn}"
             echo "── typstnique dev shell ──────────────────────────────"
             echo "  cargo leptos watch      # run dev server :3000"
             echo "  cargo fmt               # strict (nightly) formatting"
