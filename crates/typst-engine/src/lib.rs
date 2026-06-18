@@ -9,6 +9,10 @@
 //!
 //! Fonts are embedded via the `typst-assets` crate so the engine is fully
 //! self-contained and needs no filesystem or network — essential for WASM.
+//!
+//! Fonts and the standard library are each built once and shared, and Typst's
+//! `comemo` memoization cache is bounded after every compile — so the live
+//! preview's per-keystroke recompiles are incremental and cheap.
 
 use std::sync::OnceLock;
 
@@ -53,16 +57,20 @@ fn fonts() -> &'static Fonts {
     })
 }
 
+/// The Typst standard library, built once and shared (it never changes).
+fn library() -> &'static LazyHash<Library> {
+    static LIBRARY: OnceLock<LazyHash<Library>> = OnceLock::new();
+    LIBRARY.get_or_init(|| LazyHash::new(Library::builder().build()))
+}
+
 /// A minimal [`World`] backed by a single in-memory source file.
 struct GameWorld {
-    library: LazyHash<Library>,
     source: Source,
 }
 
 impl GameWorld {
     fn new(text: String) -> Self {
         Self {
-            library: LazyHash::new(Library::builder().build()),
             source: Source::detached(text),
         }
     }
@@ -70,7 +78,7 @@ impl GameWorld {
 
 impl World for GameWorld {
     fn library(&self) -> &LazyHash<Library> {
-        &self.library
+        library()
     }
 
     fn book(&self) -> &LazyHash<FontBook> {
@@ -122,16 +130,26 @@ fn wrap(source: &str, kind: Kind) -> String {
 /// Returns the collected compilation diagnostics as a human-readable
 /// (HTML-escaped) string when the snippet fails to compile.
 pub fn render_svg(source: &str, kind: Kind) -> Result<String, String> {
+    /// How many compiles a memoized result may go unused before eviction. Keeps
+    /// the cache bounded while preserving entries reused across keystrokes (e.g.
+    /// the unchanged target recompiled by `matches` on every input).
+    const EVICT_MAX_AGE: usize = 30;
+
     let world = GameWorld::new(wrap(source, kind));
     let result = typst::compile::<PagedDocument>(&world);
-    match result.output {
+    let output = match result.output {
         Ok(document) => Ok(typst_svg::svg_merged(
             &document,
             &typst_svg::SvgOptions::default(),
             Abs::pt(0.0),
         )),
         Err(diagnostics) => Err(format_diagnostics(&diagnostics)),
-    }
+    };
+
+    // Typst memoizes compilation through `comemo`; evicting after each compile
+    // bounds that cache while keeping recently-used (incremental) results.
+    comemo::evict(EVICT_MAX_AGE);
+    output
 }
 
 /// Judge whether `user` renders to the same output as `target`.
@@ -258,6 +276,18 @@ mod tests {
     fn renders_math_to_svg() {
         let svg = render_svg("e^(i pi) + 1 = 0", Kind::Math).expect("should compile");
         assert!(svg.contains("<svg"), "expected an SVG document");
+    }
+
+    #[test]
+    fn render_svg_is_stable_across_repeats() {
+        // The cached library + comemo eviction must not affect output: many
+        // repeated compiles of the same source are byte-identical, and other
+        // sources still compile in between.
+        let first = render_svg("e^(i pi) + 1 = 0", Kind::Math).expect("compiles");
+        for _ in 0..40 {
+            assert_eq!(render_svg("e^(i pi) + 1 = 0", Kind::Math).as_deref(), Ok(first.as_str()));
+            assert!(render_svg("sum_(n=1)^oo 1/n^2", Kind::Math).is_ok());
+        }
     }
 
     #[test]

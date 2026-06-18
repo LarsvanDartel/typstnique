@@ -4928,6 +4928,7 @@ dependencies = [
 name = "typst-engine"
 version = "0.1.0"
 dependencies = [
+ "comemo",
  "regex",
  "serde",
  "toml 0.8.23",
