@@ -554,13 +554,13 @@ table {
 // ── Problems grid ─────────────────────────────────────────────────────────
 .problem-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 1rem;
 
   // This is a gallery (not the game), so scale each formula to fit its card —
   // overrides the global `.target svg { flex-shrink: 0 }` used during play.
   .target {
-    max-height: 160px;
+    max-height: 220px;
   }
 
   .target svg {
