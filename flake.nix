@@ -23,21 +23,27 @@
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
 
-        # Stable Rust with the wasm target needed for the Leptos frontend.
-        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+        # Stable Rust for building (wasm target for the Leptos frontend).
+        # rustfmt is supplied separately (nightly) below so the strict
+        # `rustfmt.toml`, which uses unstable options, actually applies.
+        rustToolchain = pkgs.rust-bin.stable.latest.minimal.override {
           extensions = [
             "rust-src"
             "rust-analyzer"
             "clippy"
-            "rustfmt"
           ];
           targets = [ "wasm32-unknown-unknown" ];
         };
+
+        # Nightly rustfmt + cargo-fmt so `cargo fmt` honours the unstable options
+        # in rustfmt.toml. Picks the latest nightly that actually ships rustfmt.
+        rustfmtNightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.rustfmt);
       in
       {
         devShells.default = pkgs.mkShell {
           packages = [
             rustToolchain
+            rustfmtNightly # nightly `rustfmt`/`cargo fmt` (strict, unstable opts)
 
             # Build driver for the dual (wasm + server) Leptos build.
             pkgs.cargo-leptos

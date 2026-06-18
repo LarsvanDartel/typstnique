@@ -1,0 +1,33 @@
+# Strict rustfmt configuration.
+#
+# Several options below are *unstable* and require a nightly rustfmt. The Nix
+# dev shell provides one, so `cargo fmt` honours them; on a plain stable
+# toolchain those options are warned about and skipped.
+
+edition = "2021"
+max_width = 100
+newline_style = "Unix"
+hard_tabs = false
+tab_spaces = 4
+use_small_heuristics = "Default"
+
+# Imports — group and collapse for a consistent, readable order.
+reorder_imports = true
+reorder_modules = true
+imports_granularity = "Module"     # unstable: one `use` per module
+group_imports = "StdExternalCrate" # unstable: std / external / crate blocks
+
+# Comments & docs — wrap, normalise, and format code in doc comments.
+comment_width = 100                # unstable
+wrap_comments = true               # unstable
+normalize_comments = true          # unstable
+normalize_doc_attributes = true    # unstable
+format_code_in_doc_comments = true # unstable
+
+# Code style.
+use_field_init_shorthand = true
+use_try_shorthand = true
+match_block_trailing_comma = true
+reorder_impl_items = true          # unstable
+condense_wildcard_suffixes = true  # unstable
+format_macro_matchers = true       # unstable
