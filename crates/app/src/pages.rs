@@ -60,6 +60,18 @@ pub fn PracticePage() -> impl IntoView {
     }
 }
 
+/// One problem in the gallery: title, difficulty, and a progressively-filled goal.
+#[component]
+fn ProblemCard(title: String, stars: String, points: u32, svg: RwSignal<String>) -> impl IntoView {
+    view! {
+        <div class="panel">
+            <div class="problem-title">{title}</div>
+            <div class="difficulty">{stars} " · " {points} " pts"</div>
+            <div class="target" inner_html=move || svg.get()></div>
+        </div>
+    }
+}
+
 /// Browsable list of all problems. Targets are rendered progressively on the
 /// client — one per animation frame — so the page never blocks compiling every
 /// formula at once. Panels (title/difficulty) appear immediately; each goal
@@ -103,13 +115,7 @@ pub fn ProblemsPage() -> impl IntoView {
                         )
                     });
                     let svg = svgs.with_value(|s| s[i]);
-                    view! {
-                        <div class="panel">
-                            <div class="problem-title">{title}</div>
-                            <div class="difficulty">{stars} " · " {points} " pts"</div>
-                            <div class="target" inner_html=move || svg.get()></div>
-                        </div>
-                    }
+                    view! { <ProblemCard title=title stars=stars points=points svg=svg/> }
                 })
                 .collect_view()}
         </div>
