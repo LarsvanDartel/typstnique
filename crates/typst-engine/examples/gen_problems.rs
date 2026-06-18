@@ -53,7 +53,7 @@ fn main() {
         match typst {
             Some(src) if !src.is_empty() && render_svg(&src, Kind::Math).is_ok() => {
                 new_ok.push((title, src));
-            }
+            },
             other => new_failed.push((title, latex.to_string(), other.unwrap_or_default())),
         }
     }
@@ -78,7 +78,12 @@ fn existing_titles(path: &Path) -> HashSet<String> {
         .unwrap_or_default()
         .lines()
         .filter_map(|l| l.trim().strip_prefix("title = "))
-        .map(|q| q.trim().trim_matches('"').replace("\\\"", "\"").replace("\\\\", "\\"))
+        .map(|q| {
+            q.trim()
+                .trim_matches('"')
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\")
+        })
         .collect()
 }
 
@@ -141,9 +146,15 @@ fn clean_title(t: &str) -> String {
     // Resolve nested accents/wrappers from the inside out.
     for _ in 0..4 {
         let before = s.clone();
-        s = bb.replace_all(&s, |c: &regex::Captures| blackboard(&c[1])).into_owned();
-        s = acc.replace_all(&s, |c: &regex::Captures| accent(&c[1], &c[2])).into_owned();
-        s = short.replace_all(&s, |c: &regex::Captures| short_accent(&c[1], &c[2])).into_owned();
+        s = bb
+            .replace_all(&s, |c: &regex::Captures| blackboard(&c[1]))
+            .into_owned();
+        s = acc
+            .replace_all(&s, |c: &regex::Captures| accent(&c[1], &c[2]))
+            .into_owned();
+        s = short
+            .replace_all(&s, |c: &regex::Captures| short_accent(&c[1], &c[2]))
+            .into_owned();
         s = wrap.replace_all(&s, "$1").into_owned();
         if s == before {
             break;
@@ -152,9 +163,15 @@ fn clean_title(t: &str) -> String {
 
     // Strip leftover math markers, commands, and braces.
     s = s.replace("\\(", "").replace("\\)", "");
-    s = Regex::new(r"\\[a-zA-Z]+").unwrap().replace_all(&s, "").into_owned();
+    s = Regex::new(r"\\[a-zA-Z]+")
+        .unwrap()
+        .replace_all(&s, "")
+        .into_owned();
     s = s.replace(['{', '}', '\\'], "");
-    Regex::new(r"\s+").unwrap().replace_all(s.trim(), " ").into_owned()
+    Regex::new(r"\s+")
+        .unwrap()
+        .replace_all(s.trim(), " ")
+        .into_owned()
 }
 
 fn blackboard(letter: &str) -> String {

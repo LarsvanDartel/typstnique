@@ -78,7 +78,6 @@ pub mod ssr {
     use std::time::Instant;
 
     use leptos::prelude::*;
-
     pub use sqlx::SqlitePool;
 
     use crate::problems::Problem;
@@ -391,10 +390,10 @@ pub async fn solve(
                     if let Err(e) = insert_solve(&pool, &session, &rec, &meta).await {
                         tracing::error!(request_id, session, error = %e, "failed to record solve");
                     }
-                }
+                },
                 Err(e) => tracing::error!(request_id, error = %e, "no pool to record solve"),
             }
-        }
+        },
         SolveOutcome::Rejected(reason) => {
             tracing::warn!(
                 request_id,
@@ -408,7 +407,7 @@ pub async fn solve(
                 stddev_interval_ms = meta.stddev_interval_ms,
                 "solve rejected"
             );
-        }
+        },
     }
 
     Ok(SolveResult {

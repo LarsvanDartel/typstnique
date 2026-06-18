@@ -218,8 +218,8 @@ fn walk(node: &typst::syntax::SyntaxNode, depth: u32, stats: &mut Stats) {
     stats.weighted += match node.kind() {
         K::MathFrac => 40,
         K::MathRoot => 35,
-        K::FuncCall => 30,            // frac(), mat(), vec(), cases(), binom(), …
-        K::MathAttach => 20,                  // sub/superscripts and big-operator limits
+        K::FuncCall => 30,   // frac(), mat(), vec(), cases(), binom(), …
+        K::MathAttach => 20, // sub/superscripts and big-operator limits
         K::MathDelimited | K::MathPrimes => 8, // ( … ), [ … ], lr( … ), primes
         _ => 0,
     };
@@ -285,7 +285,10 @@ mod tests {
         // sources still compile in between.
         let first = render_svg("e^(i pi) + 1 = 0", Kind::Math).expect("compiles");
         for _ in 0..40 {
-            assert_eq!(render_svg("e^(i pi) + 1 = 0", Kind::Math).as_deref(), Ok(first.as_str()));
+            assert_eq!(
+                render_svg("e^(i pi) + 1 = 0", Kind::Math).as_deref(),
+                Ok(first.as_str())
+            );
             assert!(render_svg("sum_(n=1)^oo 1/n^2", Kind::Math).is_ok());
         }
     }

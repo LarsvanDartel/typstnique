@@ -13,7 +13,6 @@ use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::components::{Route, Router, Routes, A};
 use leptos_router::path;
-
 use pages::{HomePage, LeaderboardPage, PlayPage, PracticePage, ProblemsPage};
 
 /// The HTML document shell rendered by the server (and used for hydration).
@@ -73,7 +72,13 @@ pub fn App() -> impl IntoView {
     });
 
     let toggle_theme = move |_| {
-        theme.update(|t| *t = if t == "dark" { "light".into() } else { "dark".into() });
+        theme.update(|t| {
+            *t = if t == "dark" {
+                "light".into()
+            } else {
+                "dark".into()
+            }
+        });
     };
 
     view! {

@@ -42,7 +42,11 @@ struct KeyLog {
 }
 
 /// Summarise a [`KeyLog`] (plus the problem's start time) into [`InputMeta`].
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_precision_loss)]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)]
 fn build_meta(k: &KeyLog, prob_start_ms: f64) -> InputMeta {
     let elapsed_ms = (js_sys::Date::now() - prob_start_ms).max(0.0) as u32;
     let keydowns = k.times.len() as u32;
@@ -75,7 +79,11 @@ fn build_meta(k: &KeyLog, prob_start_ms: f64) -> InputMeta {
 }
 
 /// Fisher–Yates shuffle.
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_precision_loss)]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)]
 fn shuffle(p: &mut [Problem]) {
     for i in (1..p.len()).rev() {
         let r = (js_sys::Math::random() * (i as f64 + 1.0)) as usize;
@@ -147,7 +155,11 @@ fn wire_session(state: GameState, start: StartAction, ta_ref: NodeRef<Textarea>)
         });
         Effect::new(move |_| match start.value().get() {
             Some(Ok(game)) => {
-                log::info!("game started: session={} total={}", game.session, game.total);
+                log::info!(
+                    "game started: session={} total={}",
+                    game.session,
+                    game.total
+                );
                 state.session.set(Some(game.session));
                 state.total.set(game.total);
                 state.index.set(0);
@@ -161,9 +173,9 @@ fn wire_session(state: GameState, start: StartAction, ta_ref: NodeRef<Textarea>)
                 if let Some(ta) = ta_ref.get_untracked() {
                     ta.set_value("");
                 }
-            }
+            },
             Some(Err(e)) => log::error!("start_game failed: {e}"),
-            None => {}
+            None => {},
         });
     } else {
         Effect::new(move |ran: Option<()>| {
@@ -189,9 +201,9 @@ fn wire_result_effects(state: GameState, solve_action: SolveAction, finish: Fini
             }
             state.score.set(r.score);
             state.solved.set(r.solved);
-        }
+        },
         Some(Err(e)) => log::error!("solve failed: {e}"),
-        None => {}
+        None => {},
     });
 
     Effect::new(move |_| {
@@ -480,9 +492,8 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
 /// The playable board.
 ///
 /// * `timed` — run a 3-minute countdown and the game-over flow.
-/// * `server_scored` — fetch problems from the server and score authoritatively
-///   (the leaderboard game). When false, problems come from the `problems` prop
-///   and scoring is local (practice).
+/// * `server_scored` — fetch problems from the server and score authoritatively (the leaderboard
+///   game). When false, problems come from the `problems` prop and scoring is local (practice).
 #[component]
 pub fn GameBoard(
     #[prop(optional)] problems: Vec<Problem>,
@@ -510,7 +521,7 @@ pub fn GameBoard(
                     Err(e) => {
                         log::error!("get_problem failed: {e}");
                         None
-                    }
+                    },
                 },
                 _ => None,
             }
@@ -540,15 +551,15 @@ pub fn GameBoard(
         None => String::new(),
     });
     let highlighted = Signal::derive(move || {
-        problem
-            .get()
-            .map_or_else(String::new, |p| typst_engine::highlight_html(&state.source.get(), p.kind))
+        problem.get().map_or_else(String::new, |p| {
+            typst_engine::highlight_html(&state.source.get(), p.kind)
+        })
     });
     let is_correct = Memo::new(move |_| match problem.get() {
         Some(p) => {
             let src = state.source.get();
             !src.trim().is_empty() && typst_engine::matches(&p.source, &src, p.kind)
-        }
+        },
         None => false,
     });
 

@@ -17,9 +17,10 @@ async fn main() {
     // default is Info with noisy crates quieted. Each line carries the structured
     // fields (request_id, session, …) the server functions attach to their events.
     tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            EnvFilter::new("info,hyper=warn,sqlx=warn,tower=warn")
-        }))
+        .with(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("info,hyper=warn,sqlx=warn,tower=warn")),
+        )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
