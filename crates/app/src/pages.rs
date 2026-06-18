@@ -60,14 +60,74 @@ pub fn PracticePage() -> impl IntoView {
     }
 }
 
-/// One problem in the gallery: title, difficulty, and a progressively-filled goal.
+/// One problem in the gallery: title, difficulty, and a progressively-filled
+/// goal. Clicking (or pressing Enter/Space) opens the enlarged view by setting
+/// `selected` to this card's index.
 #[component]
-fn ProblemCard(title: String, stars: String, points: u32, svg: RwSignal<String>) -> impl IntoView {
+fn ProblemCard(
+    index: usize,
+    title: String,
+    stars: String,
+    points: u32,
+    svg: RwSignal<String>,
+    selected: RwSignal<Option<usize>>,
+) -> impl IntoView {
+    let open = move || selected.set(Some(index));
     view! {
-        <div class="panel">
+        <div
+            class="panel problem-card"
+            role="button"
+            tabindex="0"
+            on:click=move |_| open()
+            on:keydown=move |ev| {
+                if ev.key() == "Enter" || ev.key() == " " {
+                    ev.prevent_default();
+                    open();
+                }
+            }
+        >
             <div class="problem-title">{title}</div>
             <div class="difficulty">{stars} " · " {points} " pts"</div>
             <div class="target" inner_html=move || svg.get()></div>
+        </div>
+    }
+}
+
+/// Enlarged view of one problem: a bigger render of the goal plus its solution
+/// (the Typst source that produced it). Closes on the "×", on a backdrop click,
+/// or on Escape, by clearing `selected`.
+#[component]
+fn ProblemModal(
+    title: String,
+    stars: String,
+    points: u32,
+    source: String,
+    svg: RwSignal<String>,
+    selected: RwSignal<Option<usize>>,
+) -> impl IntoView {
+    let close = move || selected.set(None);
+    // A backdrop <div> only receives key events while focused, so listen on the
+    // window for Escape. The handle is removed when the modal is disposed.
+    let handle = window_event_listener(leptos::ev::keydown, move |ev| {
+        if ev.key() == "Escape" {
+            selected.set(None);
+        }
+    });
+    on_cleanup(move || handle.remove());
+    view! {
+        <div
+            class="modal"
+            on:click=move |_| close()
+        >
+            // Stop propagation so clicks inside the box don't reach the backdrop.
+            <div class="modal-box modal-box-wide" on:click=|ev| ev.stop_propagation()>
+                <button class="modal-close" title="Close" on:click=move |_| close()>"×"</button>
+                <h2>{title}</h2>
+                <div class="difficulty">{stars} " · " {points} " pts"</div>
+                <div class="target" inner_html=move || svg.get()></div>
+                <h3>"Solution"</h3>
+                <pre class="answer-src">{source}</pre>
+            </div>
         </div>
     }
 }
@@ -102,23 +162,54 @@ pub fn ProblemsPage() -> impl IntoView {
         request_animation_frame(move || next.update(|n| *n += 1));
     });
 
+    // Index of the problem shown in the enlarged modal (`None` = closed).
+    let selected = RwSignal::new(None::<usize>);
+    // Title/difficulty for a given index — reused by both the cards and modal.
+    let meta = move |i: usize| {
+        problems.with_value(|p| {
+            (
+                p[i].title.clone(),
+                "★".repeat(usize::try_from(p[i].difficulty()).unwrap_or(0)),
+                p[i].points(),
+            )
+        })
+    };
+
     view! {
         <h1>"Problems"</h1>
         <div class="problem-grid">
             {(0..count)
                 .map(|i| {
-                    let (title, stars, points) = problems.with_value(|p| {
-                        (
-                            p[i].title.clone(),
-                            "★".repeat(usize::try_from(p[i].difficulty()).unwrap_or(0)),
-                            p[i].points(),
-                        )
-                    });
+                    let (title, stars, points) = meta(i);
                     let svg = svgs.with_value(|s| s[i]);
-                    view! { <ProblemCard title=title stars=stars points=points svg=svg/> }
+                    view! {
+                        <ProblemCard
+                            index=i
+                            title=title
+                            stars=stars
+                            points=points
+                            svg=svg
+                            selected=selected
+                        />
+                    }
                 })
                 .collect_view()}
         </div>
+        {move || selected.get().map(|i| {
+            let (title, stars, points) = meta(i);
+            let source = problems.with_value(|p| p[i].source.clone());
+            let svg = svgs.with_value(|s| s[i]);
+            view! {
+                <ProblemModal
+                    title=title
+                    stars=stars
+                    points=points
+                    source=source
+                    svg=svg
+                    selected=selected
+                />
+            }
+        })}
     }
 }
 

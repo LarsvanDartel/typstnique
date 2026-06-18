@@ -495,6 +495,31 @@ table {
     box-shadow: 0 10px 40px var(--shadow);
   }
 
+  // Wider, left-aligned variant for the problem gallery's enlarged view, which
+  // needs room for a full-size formula and its multi-line source.
+  .modal-box-wide {
+    width: min(680px, 92vw);
+    text-align: left;
+
+    h2 {
+      margin: 0 2rem 0.25rem 0; // leave space for the close button
+    }
+
+    .difficulty {
+      margin-bottom: 1rem;
+    }
+
+    .answer-src {
+      margin-top: 0.5rem;
+    }
+  }
+
+  // Let the enlarged goal use real vertical space (the 220px gallery cap only
+  // applies under `.problem-grid`). Tall formulas scroll within the box.
+  .target {
+    max-height: 60vh;
+  }
+
   // Links inherit a theme-aware accent (instead of the default browser blue).
   a {
     color: var(--accent);
@@ -556,6 +581,23 @@ table {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 1rem;
+
+  // Cards open an enlarged view on click, so signal interactivity.
+  .problem-card {
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+
+    &:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 14px var(--shadow);
+      transform: translateY(-2px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  }
 
   // This is a gallery (not the game), so scale each formula to fit its card —
   // overrides the global `.target svg { flex-shrink: 0 }` used during play.
