@@ -637,6 +637,45 @@ table {
   }
 }
 
+// ── Problems controls (search / filter / sort) ────────────────────────────
+.problem-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+
+  label {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  input,
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 0.45rem 0.6rem;
+    font: inherit;
+  }
+
+  .problem-search {
+    flex: 1 1 16rem;
+    min-width: 12rem;
+  }
+
+  .problem-count {
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-left: auto;
+  }
+}
+
 // ── Problems grid ─────────────────────────────────────────────────────────
 .problem-grid {
   display: grid;

@@ -132,14 +132,106 @@ fn ProblemModal(
     }
 }
 
-/// Browsable list of all problems. Targets are rendered progressively on the
-/// client — one per animation frame — so the page never blocks compiling every
-/// formula at once. Panels (title/difficulty) appear immediately; each goal
-/// pops in as it's rendered.
+/// How the gallery is ordered. `Original` preserves the bundled order.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SortKey {
+    Original,
+    DifficultyAsc,
+    DifficultyDesc,
+    TitleAz,
+}
+
+impl SortKey {
+    fn from_value(v: &str) -> Self {
+        match v {
+            "diff-asc" => Self::DifficultyAsc,
+            "diff-desc" => Self::DifficultyDesc,
+            "title" => Self::TitleAz,
+            _ => Self::Original,
+        }
+    }
+}
+
+/// Precomputed, display-ready metadata for one problem (so filtering/sorting
+/// never re-parses the source on each keystroke). `difficulty_score` walks the
+/// Typst AST, so doing it 185× per keystroke would be wasteful.
+#[derive(Clone)]
+struct ProblemMeta {
+    title: String,
+    title_lower: String,
+    source_lower: String,
+    stars: String,
+    points: u32,
+    difficulty: u32,
+}
+
+/// Search / difficulty-filter / sort toolbar for the gallery.
+#[component]
+fn ProblemControls(
+    search: RwSignal<String>,
+    min_stars: RwSignal<u32>,
+    sort: RwSignal<SortKey>,
+    shown: Memo<usize>,
+) -> impl IntoView {
+    view! {
+        <div class="problem-controls">
+            <input
+                class="problem-search"
+                type="search"
+                placeholder="Search problems…"
+                prop:value=move || search.get()
+                on:input=move |ev| search.set(event_target_value(&ev))
+            />
+            <label>
+                "Min difficulty "
+                <select on:change=move |ev| {
+                    min_stars.set(event_target_value(&ev).parse().unwrap_or(1));
+                }>
+                    <option value="1">"Any"</option>
+                    <option value="2">"★★+"</option>
+                    <option value="3">"★★★+"</option>
+                    <option value="4">"★★★★+"</option>
+                    <option value="5">"★★★★★"</option>
+                </select>
+            </label>
+            <label>
+                "Sort "
+                <select on:change=move |ev| sort.set(SortKey::from_value(&event_target_value(&ev)))>
+                    <option value="original">"Original"</option>
+                    <option value="diff-asc">"Easiest first"</option>
+                    <option value="diff-desc">"Hardest first"</option>
+                    <option value="title">"Title A–Z"</option>
+                </select>
+            </label>
+            <span class="problem-count">{move || format!("{} shown", shown.get())}</span>
+        </div>
+    }
+}
+
+/// Browsable, filterable list of all problems. Targets are rendered
+/// progressively on the client — one per animation frame — so the page never
+/// blocks compiling every formula at once. Panels (title/difficulty) appear
+/// immediately; each goal pops in as it's rendered.
 #[component]
 pub fn ProblemsPage() -> impl IntoView {
     let problems = StoredValue::new(load_problems());
     let count = problems.with_value(Vec::len);
+    // Compute each problem's display metadata once, up front.
+    let meta_all = StoredValue::new(problems.with_value(|p| {
+        p.iter()
+            .map(|prob| {
+                let difficulty = prob.difficulty();
+                ProblemMeta {
+                    title: prob.title.clone(),
+                    title_lower: prob.title.to_lowercase(),
+                    source_lower: prob.source.to_lowercase(),
+                    stars: "★".repeat(usize::try_from(difficulty).unwrap_or(0)),
+                    points: prob.points(),
+                    difficulty,
+                }
+            })
+            .collect::<Vec<_>>()
+    }));
     // One SVG signal per problem, filled in progressively.
     let svgs = StoredValue::new(
         (0..count)
@@ -164,23 +256,45 @@ pub fn ProblemsPage() -> impl IntoView {
 
     // Index of the problem shown in the enlarged modal (`None` = closed).
     let selected = RwSignal::new(None::<usize>);
-    // Title/difficulty for a given index — reused by both the cards and modal.
-    let meta = move |i: usize| {
-        problems.with_value(|p| {
-            (
-                p[i].title.clone(),
-                "★".repeat(usize::try_from(p[i].difficulty()).unwrap_or(0)),
-                p[i].points(),
-            )
+    // Filter/sort controls.
+    let search = RwSignal::new(String::new());
+    let sort = RwSignal::new(SortKey::Original);
+    let min_stars = RwSignal::new(1u32);
+
+    // Original indices that pass the filters, in the chosen order.
+    let visible = Memo::new(move |_| {
+        let q = search.get().trim().to_lowercase();
+        let min = min_stars.get();
+        let key = sort.get();
+        meta_all.with_value(|m| {
+            let mut idx: Vec<usize> = (0..m.len())
+                .filter(|&i| {
+                    m[i].difficulty >= min
+                        && (q.is_empty()
+                            || m[i].title_lower.contains(&q)
+                            || m[i].source_lower.contains(&q))
+                })
+                .collect();
+            match key {
+                SortKey::Original => {},
+                SortKey::DifficultyAsc => idx.sort_by_key(|&i| m[i].points),
+                SortKey::DifficultyDesc => idx.sort_by_key(|&i| std::cmp::Reverse(m[i].points)),
+                SortKey::TitleAz => idx.sort_by(|&a, &b| m[a].title_lower.cmp(&m[b].title_lower)),
+            }
+            idx
         })
-    };
+    });
+
+    let shown = Memo::new(move |_| visible.get().len());
 
     view! {
         <h1>"Problems"</h1>
+        <ProblemControls search=search min_stars=min_stars sort=sort shown=shown/>
         <div class="problem-grid">
-            {(0..count)
-                .map(|i| {
-                    let (title, stars, points) = meta(i);
+            <For each=move || visible.get() key=|i| *i let:i>
+                {
+                    let (title, stars, points) = meta_all
+                        .with_value(|m| (m[i].title.clone(), m[i].stars.clone(), m[i].points));
                     let svg = svgs.with_value(|s| s[i]);
                     view! {
                         <ProblemCard
@@ -192,11 +306,15 @@ pub fn ProblemsPage() -> impl IntoView {
                             selected=selected
                         />
                     }
-                })
-                .collect_view()}
+                }
+            </For>
         </div>
+        {move || visible.get().is_empty().then(|| view! {
+            <p class="hint">"No problems match."</p>
+        })}
         {move || selected.get().map(|i| {
-            let (title, stars, points) = meta(i);
+            let (title, stars, points) = meta_all
+                .with_value(|m| (m[i].title.clone(), m[i].stars.clone(), m[i].points));
             let source = problems.with_value(|p| p[i].source.clone());
             let svg = svgs.with_value(|s| s[i]);
             view! {
