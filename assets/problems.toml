@@ -176,7 +176,7 @@ source = "(f * g)(t) = integral_(-oo)^oo f(tau) g(t - tau) dif tau"
 
 [[problem]]
 title = "Definition of the Kronecker Delta function"
-source = "delta_(i,j) = cases(0 & i != j, 1 & i = j)"
+source = "delta_(i,j) = cases(0 & quad i != j, 1 & quad i = j)"
 
 [[problem]]
 title = "Bayes' Theorem"
@@ -200,7 +200,7 @@ source = "S(x) = cases(x - floor(x) - 1 / 2 & quad x in RR without ZZ, 0 & quad 
 
 [[problem]]
 title = "Definition of Graham's Number"
-source = "g_n = cases(3 arrow.t arrow.t arrow.t arrow.t 3 & n = 1, 3 arrow.t^(g_(n - 1)) 3 & n >= 2, n in NN)"
+source = "g_n = cases(3 arrow.t arrow.t arrow.t arrow.t 3 & quad n = 1, 3 scripts(arrow.t)^(g_(n - 1)) 3 & quad n >= 2\\, n in NN)"
 
 [[problem]]
 title = "Burnside's Lemma"
@@ -336,7 +336,7 @@ source = "(f ast g)(n) = sum_(d divides n) f(d) g(n / d)"
 
 [[problem]]
 title = "Sum of a Row of Pascal's Triangle"
-source = "binom(n, 0) + binom(n, 1) + binom(n, 2) + ... + binom(n, n) = 2^n"
+source = "binom(n, 0) + binom(n, 1) + binom(n, 2) + dots.c + binom(n, n) = 2^n"
 
 [[problem]]
 title = "Definitions of Catalan's Constant"
