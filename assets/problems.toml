@@ -264,7 +264,7 @@ source = "|x chevron.r |-> 1 / sqrt(N) sum_(k = 0)^(N - 1) omega_x^k |k chevron.
 
 [[problem]]
 title = "Recursive definition of the Hadamard transform"
-source = "H_m = cases(1 & m = 0, 1 / sqrt(2) mat(H_(m - 1), H_(m - 1) ; H_(m - 1), - H_(m - 1)) & m > 0)"
+source = "H_m = cases(1 & quad m = 0, 1 / sqrt(2) mat(H_(m - 1), H_(m - 1) ; H_(m - 1), - H_(m - 1)) & quad m > 0)"
 
 [[problem]]
 title = "Imaginary numbers"
@@ -691,7 +691,7 @@ source = "A = mat(|, |,, |; upright(bold(v))_1, upright(bold(v))_2, dots.c, upri
 
 [[problem]]
 title = "Wigner Transform of the Density Matrix"
-source = "W(x, p) = 1 / (pi planck) integral_(-oo)^oo chevron.l x + y|hat(rho)|x - y chevron.r e^(- 2 i p y / planck) y"
+source = "W(x, p) = 1 / (pi planck) integral_(-oo)^oo chevron.l x + y|hat(rho)|x - y chevron.r e^(- 2 i p y \\/ planck) y"
 
 [[problem]]
 title = "Power Mean"
