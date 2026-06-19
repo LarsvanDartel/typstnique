@@ -198,9 +198,12 @@ rather than being fetched at build time.
 - **`wasm-bindgen` version:** the `wasm-bindgen` pin in the root `Cargo.toml`
   must match `wasm-bindgen --version` from the dev shell. If cargo-leptos
   complains about a mismatch, align the pin to the CLI version.
-- **WASM size:** the embedded Typst font set (`typst-assets`) makes the WASM
-  bundle large. cargo-leptos runs `wasm-opt` and the server gzips responses;
-  trimming to a minimal font set is a future optimisation.
+- **WASM size:** the WASM bundle embeds only the fonts actually needed by the
+  problem set (currently New Computer Modern Math — 3 variants, ~3.9 MB).
+  cargo-leptos runs `wasm-opt` and the server gzips responses. If new problems
+  require additional fonts, bless the snapshot fixture (`BLESS=1 cargo test -p
+  app --features ssr snapshot_all_problem_renders`) and add the font files to
+  `crates/typst-engine/fonts/` + update `src/lib.rs`.
 - **`getrandom` on WASM:** if the build fails on `getrandom` for
   `wasm32-unknown-unknown`, add `getrandom = { version = "...", features = ["js"] }`
   to the `frontend` crate to select the browser backend.
@@ -227,6 +230,7 @@ content keeps its original terms:
 - **Problem set** — `assets/problems.toml` was seeded from
   [TeXnique](https://github.com/akshayravikumar/TeXnique) (MIT), with each
   formula converted to Typst and verified by hand.
-- **Fonts** — the Typst font set embedded via
-  [`typst-assets`](https://github.com/typst/typst-assets) ships under its own
-  licenses (mostly the SIL Open Font License).
+- **Fonts** — `crates/typst-engine/fonts/` contains three variants of
+  [New Computer Modern Math](https://ctan.org/pkg/newcm) (Regular, Book, Bold),
+  sourced from [`typst-assets`](https://github.com/typst/typst-assets) and
+  licensed under the [SIL Open Font License 1.1](https://openfontlicense.org).

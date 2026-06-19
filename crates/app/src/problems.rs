@@ -76,4 +76,68 @@ mod tests {
             failures.join("\n")
         );
     }
+
+    /// Snapshot gate: every problem's normalized SVG must hash to the same
+    /// value as when the fixture was last blessed. Run `BLESS=1 cargo test -p
+    /// app --features ssr snapshot_all_problem_renders` to regenerate after an
+    /// intentional font or rendering change.
+    #[test]
+    fn snapshot_all_problem_renders() {
+        let problems = load_problems();
+        let fixture_path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/problem_renders.txt");
+
+        let hashes: Vec<String> = problems
+            .iter()
+            .map(|p| {
+                let svg = typst_engine::render_svg(&p.source, p.kind).unwrap_or_default();
+                let norm = typst_engine::normalize_svg(&svg);
+                format!("{:016x}", fnv1a64(norm.as_bytes()))
+            })
+            .collect();
+
+        if std::env::var("BLESS").is_ok() {
+            std::fs::write(fixture_path, hashes.join("\n") + "\n")
+                .expect("write problem_renders.txt");
+            eprintln!("blessed {} hashes → {fixture_path}", hashes.len());
+            return;
+        }
+
+        let fixture =
+            std::fs::read_to_string(fixture_path).unwrap_or_else(|_| panic!(
+                "fixture {fixture_path} missing — run: BLESS=1 cargo test -p app --features ssr snapshot_all_problem_renders"
+            ));
+        let expected: Vec<&str> = fixture.lines().collect();
+        assert_eq!(
+            hashes.len(),
+            expected.len(),
+            "problem count changed ({} vs {}); re-bless the fixture",
+            hashes.len(),
+            expected.len()
+        );
+        let mut failures = vec![];
+        for (i, (got, exp)) in hashes.iter().zip(expected.iter()).enumerate() {
+            if got != exp {
+                failures.push(format!(
+                    "  problem {:3}: {} (expected {exp}, got {got})",
+                    i, problems[i].title
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} problem render(s) changed — re-bless if intentional:\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
+    }
+
+    /// FNV-1a 64-bit hash — stable across Rust versions, no extra deps.
+    fn fnv1a64(data: &[u8]) -> u64 {
+        let mut h: u64 = 14_695_981_039_346_656_037;
+        for &b in data {
+            h ^= u64::from(b);
+            h = h.wrapping_mul(1_099_511_628_211);
+        }
+        h
+    }
 }

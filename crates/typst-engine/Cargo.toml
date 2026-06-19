@@ -8,15 +8,27 @@ license.workspace = true
 typst = "0.15"
 typst-layout = "0.15"
 typst-svg = "0.15"
-typst-assets = { version = "0.15", features = ["fonts"] }
+# No typst-assets runtime dependency — build.rs filters and writes only the
+# needed fonts (New Computer Modern Math) to $OUT_DIR at compile time; lib.rs
+# includes them via the generated `fonts.rs`. The WASM therefore only embeds
+# the fonts actually used by the problem set.
 # Same version `typst` uses, so `comemo::evict` manages the same memo cache.
 comemo = "0.5"
 regex = "1"
 serde = { workspace = true }
 
+[build-dependencies]
+# build.rs iterates typst_assets::fonts(), parses family names via typst::text,
+# and writes only the matching bytes to $OUT_DIR. Not linked into the final binary.
+typst = "0.15"
+typst-assets = { version = "0.15", features = ["fonts"] }
+
 [dev-dependencies]
 # Used by the `gen_problems` example to emit `assets/problems.toml`.
 toml = "0.8"
+# Used by the `font_sweep` example to parse problems.toml and sweep all fonts.
+serde = { workspace = true }
+typst-assets = { version = "0.15", features = ["fonts"] }
 # LaTeX -> Typst converter for the problem generator. Dev-only, so it never
 # enters the app/WASM build. `default-features = false` drops its CLI (clap).
 tylax = { git = "https://github.com/scipenai/tylax", tag = "v0.3.6", default-features = false }

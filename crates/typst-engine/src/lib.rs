@@ -37,6 +37,10 @@ pub enum Kind {
     Markup,
 }
 
+// Font bytes selected at build time by `build.rs`: only the families in
+// `KEEP` are written to `$OUT_DIR`; all others are excluded from the binary.
+include!(concat!(env!("OUT_DIR"), "/fonts.rs"));
+
 /// Shared, lazily-initialised font data (loaded once, reused across compiles).
 struct Fonts {
     book: LazyHash<FontBook>,
@@ -46,8 +50,9 @@ struct Fonts {
 fn fonts() -> &'static Fonts {
     static FONTS: OnceLock<Fonts> = OnceLock::new();
     FONTS.get_or_init(|| {
-        let fonts: Vec<Font> = typst_assets::fonts()
-            .flat_map(|bytes| Font::iter(Bytes::new(bytes)))
+        let fonts: Vec<Font> = BUNDLED_FONTS
+            .iter()
+            .flat_map(|bytes| Font::iter(Bytes::new(*bytes)))
             .collect();
         let book = FontBook::from_fonts(&fonts);
         Fonts {
@@ -257,7 +262,12 @@ fn html_escape(s: &str) -> String {
 /// Strip non-semantic noise from an SVG so visually-identical renders compare
 /// equal: element `id`s, `href`/`xlink:href` cross-references, and whitespace.
 /// The ordered sequence of glyph/path elements (which encodes the visual
-/// result) is preserved.
+/// result) is preserved. Also used by the snapshot gate in the `app` crate.
+#[must_use]
+pub fn normalize_svg(svg: &str) -> String {
+    normalize(svg)
+}
+
 fn normalize(svg: &str) -> String {
     static IDS: OnceLock<Regex> = OnceLock::new();
     static WS: OnceLock<Regex> = OnceLock::new();
