@@ -5,7 +5,7 @@ use leptos_router::components::A;
 
 use crate::game::GameBoard;
 use crate::problems::load_problems;
-use crate::server_fns::top_scores;
+use crate::server_fns::{top_scores, LeaderboardPeriod};
 
 /// Simple landing page.
 #[component]
@@ -335,9 +335,26 @@ pub fn ProblemsPage() -> impl IntoView {
 /// Global leaderboard, fetched from the server.
 #[component]
 pub fn LeaderboardPage() -> impl IntoView {
-    let scores = Resource::new(|| (), |()| async move { top_scores().await });
+    let period = RwSignal::new(LeaderboardPeriod::AllTime);
+    let scores = Resource::new(move || period.get(), |p| async move { top_scores(p).await });
+
+    let tab = move |label: &'static str, p: LeaderboardPeriod| {
+        view! {
+            <button
+                class="ghost"
+                class:active=move || period.get() == p
+                on:click=move |_| period.set(p)
+            >{label}</button>
+        }
+    };
+
     view! {
         <h1>"Leaderboard"</h1>
+        <div class="leaderboard-tabs">
+            {tab("All time", LeaderboardPeriod::AllTime)}
+            {tab("Monthly", LeaderboardPeriod::Monthly)}
+            {tab("Daily", LeaderboardPeriod::Daily)}
+        </div>
         <Suspense fallback=move || view! { <p>"Loading…"</p> }>
             {move || Suspend::new(async move {
                 match scores.await {

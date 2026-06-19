@@ -29,6 +29,15 @@ pub struct ScoreEntry {
     pub problems_solved: i64,
 }
 
+/// Time window for leaderboard queries.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LeaderboardPeriod {
+    #[default]
+    AllTime,
+    Monthly,
+    Daily,
+}
+
 /// Result of starting a game: a session token and how many problems it holds.
 /// Problems themselves are fetched one at a time with [`get_problem`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -479,22 +488,32 @@ pub async fn finish_game(session: String, name: String) -> Result<(), ServerFnEr
     Ok(())
 }
 
-/// Top scores, highest first.
+/// Top scores, highest first. `period` filters to scores submitted within the
+/// last day, last 30 days, or all time.
 #[server]
-pub async fn top_scores() -> Result<Vec<ScoreEntry>, ServerFnError> {
+pub async fn top_scores(period: LeaderboardPeriod) -> Result<Vec<ScoreEntry>, ServerFnError> {
     use ssr::{new_request_id, pool, req_err};
 
     let request_id = new_request_id();
     let pool = pool()?;
 
-    let rows = sqlx::query_as::<_, (String, i64, i64)>(
-        "SELECT name, score, problems_solved FROM scores ORDER BY score DESC LIMIT 20",
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| req_err(&request_id, &format!("database error: {e}")))?;
+    // WHERE clause comes from a trusted server-side enum, not user input.
+    let since = match period {
+        LeaderboardPeriod::AllTime => String::new(),
+        LeaderboardPeriod::Monthly => "WHERE created_at >= datetime('now', '-30 days') ".into(),
+        LeaderboardPeriod::Daily => "WHERE created_at >= datetime('now', '-1 day') ".into(),
+    };
+    let sql = format!(
+        "SELECT name, score, problems_solved FROM scores \
+         {since}ORDER BY score DESC, created_at ASC LIMIT 50"
+    );
 
-    tracing::debug!(request_id, count = rows.len(), "leaderboard read");
+    let rows = sqlx::query_as::<_, (String, i64, i64)>(&sql)
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| req_err(&request_id, &format!("database error: {e}")))?;
+
+    tracing::debug!(request_id, count = rows.len(), ?period, "leaderboard read");
     Ok(rows
         .into_iter()
         .map(|(name, score, problems_solved)| ScoreEntry {
