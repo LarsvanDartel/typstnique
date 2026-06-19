@@ -39,6 +39,8 @@ struct KeyLog {
     typed: u32,
     /// Backspace/Delete presses.
     backspaces: u32,
+    /// Characters that arrived via paste (editor grew by > 1 in one input event).
+    paste_chars: u32,
 }
 
 /// Summarise a [`KeyLog`] (plus the problem's start time) into [`InputMeta`].
@@ -75,6 +77,7 @@ fn build_meta(k: &KeyLog, prob_start_ms: f64) -> InputMeta {
         mean_interval_ms: mean as u32,
         stddev_interval_ms: stddev as u32,
         min_interval_ms: if min.is_finite() { min as u32 } else { 0 },
+        paste_chars: k.paste_chars,
     }
 }
 
@@ -449,7 +452,17 @@ fn Board(
     };
     let on_input = move |_| {
         if let Some(ta) = ta_ref.get_untracked() {
-            state.source.set(ta.value());
+            let new_src = ta.value();
+            let old_len = state.source.get_untracked().len();
+            let new_len = new_src.len();
+            // A paste grows the editor by more than 1 char in one input event.
+            // autocomplete="off" is already set so other multi-char inserts are rare.
+            if new_len > old_len + 1 {
+                state
+                    .keys
+                    .update_value(|k| k.paste_chars += (new_len - old_len) as u32);
+            }
+            state.source.set(new_src);
         }
     };
     // Keystroke telemetry (timing, typed chars, backspaces) for plausibility.

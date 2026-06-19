@@ -67,6 +67,8 @@ pub struct InputMeta {
     pub stddev_interval_ms: u32,
     /// Smallest gap between two consecutive keystrokes.
     pub min_interval_ms: u32,
+    /// Characters that arrived via paste (content grew by > 1 in one input event).
+    pub paste_chars: u32,
 }
 
 /// Server response to a solve attempt. `score`/`solved` are the authoritative
@@ -243,25 +245,35 @@ pub mod ssr {
         answer_len: usize,
         server_elapsed_ms: Option<u32>,
     ) -> Option<&'static str> {
+        // Client can't claim more elapsed time than the server observed — that
+        // would let a forged elapsed_ms pass the "too fast" gate below.
+        if let Some(server_ms) = server_elapsed_ms {
+            if meta.elapsed_ms > server_ms + ELAPSED_SLACK_MS {
+                return Some("claimed time exceeds server window");
+            }
+        }
         // Took at least a moment — not an instant script.
         if meta.elapsed_ms < 400 {
             return Some("too fast (<400ms)");
         }
-        // Actually typed (roughly) the whole answer; a paste reports ~no keystrokes.
-        if (meta.typed_chars as usize) + 2 < answer_len {
-            return Some("too few keystrokes (paste?)");
+        // Net-typed (typed minus individual-key deletions) must cover the answer.
+        // Using raw typed_chars is bypassable: type N garbage chars, backspace N,
+        // paste the answer — typed_chars stays high. Net = 0 fails the check.
+        let net_typed = meta.typed_chars.saturating_sub(meta.backspaces);
+        if (net_typed as usize) + 2 < answer_len {
+            return Some("too few net keystrokes (paste?)");
+        }
+        // Paste chars detected on the client (multi-char content growth in one
+        // input event). If the pasted amount alone accounts for the answer, reject.
+        // Catches the "select-all + Delete (1 keypress) + paste" variant that the
+        // net-typed check misses.
+        if (meta.paste_chars as usize) + 2 >= answer_len {
+            return Some("answer likely pasted");
         }
         // Below a superhuman typing speed.
         let seconds = f64::from(meta.elapsed_ms) / 1000.0;
         if f64::from(meta.typed_chars) / seconds > 25.0 {
             return Some("superhuman typing speed");
-        }
-        // Timing cross-check: the client can't truthfully claim it spent *more*
-        // time than the server observed since it sent the problem.
-        if let Some(server_ms) = server_elapsed_ms {
-            if meta.elapsed_ms > server_ms + ELAPSED_SLACK_MS {
-                return Some("claimed time exceeds server window");
-            }
         }
         // Robotic, near-constant keystroke rhythm over many keys.
         if meta.keydowns > 8 && meta.stddev_interval_ms < 5 {
@@ -283,8 +295,8 @@ pub mod ssr {
         sqlx::query(
             "INSERT INTO solves (session, problem_title, problem_index, points, \
              server_elapsed_ms, client_elapsed_ms, typed_chars, keydowns, backspaces, \
-             first_key_ms, mean_interval_ms, stddev_interval_ms, min_interval_ms) \
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             first_key_ms, mean_interval_ms, stddev_interval_ms, min_interval_ms, paste_chars) \
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         )
         .bind(session)
         .bind(&rec.problem_title)
@@ -299,6 +311,7 @@ pub mod ssr {
         .bind(i64::from(meta.mean_interval_ms))
         .bind(i64::from(meta.stddev_interval_ms))
         .bind(i64::from(meta.min_interval_ms))
+        .bind(i64::from(meta.paste_chars))
         .execute(pool)
         .await?;
         Ok(())
@@ -607,6 +620,7 @@ mod tests {
             mean_interval_ms: 200,
             stddev_interval_ms: 80,
             min_interval_ms: 30,
+            paste_chars: 0,
         }
     }
 
