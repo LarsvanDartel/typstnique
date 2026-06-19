@@ -365,13 +365,16 @@ fn Hud(state: GameState, problem: Signal<Option<Problem>>) -> impl IntoView {
                         <b>{timer_label}</b>
                     </div>
                     <div class="stat">
-                        <span class="label">"Progress"</span>
+                        <span class="label">"Solved"</span>
                         <b>{move || format!("{} / {}", state.solved.get(), state.index.get())}</b>
                     </div>
                 })}
                 <div class="stat"><span class="label">"Score"</span> <b>{move || state.score.get()}</b></div>
                 {move || (!state.timed).then(|| view! {
-                    <div class="stat"><span class="label">"Solved"</span> <b>{move || state.solved.get()}</b></div>
+                    <div class="stat">
+                        <span class="label">"Solved"</span>
+                        <b>{move || format!("{} / {}", state.solved.get(), state.problems.with(Vec::len))}</b>
+                    </div>
                 })}
             </div>
         </div>
