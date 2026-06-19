@@ -212,6 +212,7 @@ fn ProblemControls(
 /// progressively on the client — one per animation frame — so the page never
 /// blocks compiling every formula at once. Panels (title/difficulty) appear
 /// immediately; each goal pops in as it's rendered.
+#[allow(clippy::too_many_lines)]
 #[component]
 pub fn ProblemsPage() -> impl IntoView {
     let problems = StoredValue::new(load_problems());

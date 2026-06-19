@@ -68,6 +68,8 @@ pub struct SolveResult {
     pub accepted: bool,
     pub score: u32,
     pub solved: u32,
+    /// Why the solve was rejected (`None` when accepted) — shown to the player.
+    pub reason: Option<String>,
     pub request_id: String,
 }
 
@@ -95,6 +97,9 @@ pub mod ssr {
         pub solved: u32,
         pub start: Instant,
         pub done: HashSet<usize>,
+        /// The problem index the server last handed out — the only one a solve
+        /// may be credited for (set by `get_problem`).
+        pub current: Option<usize>,
         /// When the client last fetched each problem (for the timing cross-check).
         pub fetched_at: HashMap<usize, Instant>,
     }
@@ -172,6 +177,11 @@ pub mod ssr {
         let Some(problem) = s.problems.get(index).cloned() else {
             return SolveOutcome::Rejected("invalid problem index");
         };
+        // Only the problem the server last served can be credited — the client
+        // can't bank solves for problems it isn't currently on.
+        if s.current != Some(index) {
+            return SolveOutcome::Rejected("not the active problem");
+        }
         if s.done.contains(&index) {
             return SolveOutcome::Rejected("already solved");
         }
@@ -303,6 +313,7 @@ pub async fn start_game() -> Result<GameStart, ServerFnError> {
             solved: 0,
             start: std::time::Instant::now(),
             done: std::collections::HashSet::new(),
+            current: None,
             fetched_at: std::collections::HashMap::new(),
         },
     );
@@ -328,6 +339,7 @@ pub async fn get_problem(session: String, index: usize) -> Result<Problem, Serve
         return Err(req_err(&request_id, "session has no problems"));
     }
     let idx = index % n;
+    s.current = Some(idx);
     s.fetched_at.insert(idx, std::time::Instant::now());
     let problem = s.problems[idx].clone();
     tracing::debug!(request_id, session, index = idx, title = %problem.title, "fetch problem");
@@ -370,6 +382,7 @@ pub async fn solve(
     };
 
     let accepted = matches!(outcome, SolveOutcome::Accepted(_));
+    let mut reason = None;
     match outcome {
         SolveOutcome::Accepted(rec) => {
             tracing::info!(
@@ -394,12 +407,12 @@ pub async fn solve(
                 Err(e) => tracing::error!(request_id, error = %e, "no pool to record solve"),
             }
         },
-        SolveOutcome::Rejected(reason) => {
+        SolveOutcome::Rejected(why) => {
             tracing::warn!(
                 request_id,
                 session,
                 index,
-                reason,
+                reason = why,
                 client_ms = meta.elapsed_ms,
                 server_ms = ?server_elapsed_ms,
                 typed_chars = meta.typed_chars,
@@ -407,6 +420,7 @@ pub async fn solve(
                 stddev_interval_ms = meta.stddev_interval_ms,
                 "solve rejected"
             );
+            reason = Some(why.to_string());
         },
     }
 
@@ -414,6 +428,7 @@ pub async fn solve(
         accepted,
         score,
         solved,
+        reason,
         request_id,
     })
 }
@@ -502,6 +517,8 @@ mod tests {
             solved: 0,
             start: std::time::Instant::now(),
             done: std::collections::HashSet::new(),
+            // The active problem is index 0 (as if `get_problem(0)` was served).
+            current: Some(0),
             fetched_at: std::collections::HashMap::new(),
         }
     }
@@ -572,6 +589,22 @@ mod tests {
         // Re-solving the same problem is rejected with a reason.
         let again = credit_solve(&mut s, 0, "a + b", &good_meta(5), Some(4200));
         assert!(matches!(again, SolveOutcome::Rejected("already solved")));
+    }
+
+    #[test]
+    fn rejects_solve_for_non_active_problem() {
+        let mut s = session_with("a + b");
+        s.problems.push(crate::problems::Problem {
+            title: "u".into(),
+            kind: typst_engine::Kind::Math,
+            source: "c + d".into(),
+        });
+        // Active problem is index 0; a correct solve for index 1 is rejected.
+        assert!(matches!(
+            credit_solve(&mut s, 1, "c + d", &good_meta(5), Some(4200)),
+            SolveOutcome::Rejected("not the active problem")
+        ));
+        assert_eq!(s.solved, 0);
     }
 
     #[test]

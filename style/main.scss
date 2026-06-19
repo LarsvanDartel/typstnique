@@ -460,6 +460,26 @@ h1 {
   }
 }
 
+// ── Solve rejection notice ─────────────────────────────────────────────────
+// Shown below the editor actions when the server rejects a solve (or a
+// network error occurs). Dismissible; "Try again" re-dispatches the action.
+.solve-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  background: color-mix(in srgb, var(--bad) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+  border-radius: 8px;
+  font-size: 0.85rem;
+
+  .solve-notice-reason {
+    flex: 1;
+    color: var(--bad);
+  }
+}
+
 button {
   background: var(--accent);
   color: #fff;

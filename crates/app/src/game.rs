@@ -116,6 +116,12 @@ struct GameState {
     show_answer: RwSignal<bool>,
     submitted: RwSignal<bool>,
     submit_err: RwSignal<Option<String>>,
+    /// Why the last solve attempt wasn't counted (server rejection or network
+    /// error), shown inline by the editor until the next problem.
+    reject_notice: RwSignal<Option<String>>,
+    /// Set when starting a game or fetching a problem fails, so the board can
+    /// offer a retry instead of spinning on "Loading…".
+    load_err: RwSignal<Option<String>>,
     keys: StoredValue<KeyLog>,
     prob_start_ms: RwSignal<f64>,
     timed: bool,
@@ -140,6 +146,8 @@ impl GameState {
             show_answer: RwSignal::new(false),
             submitted: RwSignal::new(false),
             submit_err: RwSignal::new(None),
+            reject_notice: RwSignal::new(None),
+            load_err: RwSignal::new(None),
             keys: StoredValue::new(KeyLog::default()),
             prob_start_ms: RwSignal::new(0.0),
             timed,
@@ -177,11 +185,15 @@ fn wire_session(state: GameState, start: StartAction, ta_ref: NodeRef<Textarea>)
                 state.submit_err.set(None);
                 state.game_over.set(false);
                 state.summary_open.set(false);
+                state.load_err.set(None);
                 if let Some(ta) = ta_ref.get_untracked() {
                     ta.set_value("");
                 }
             },
-            Some(Err(e)) => log::error!("start_game failed: {e}"),
+            Some(Err(e)) => {
+                log::error!("start_game failed: {e}");
+                state.load_err.set(Some("Couldn't start the game.".into()));
+            },
             None => {},
         });
     } else {
@@ -195,21 +207,46 @@ fn wire_session(state: GameState, start: StartAction, ta_ref: NodeRef<Textarea>)
     }
 }
 
-/// Reflect server results: authoritative score on solve, errors on solve/finish.
+/// Clear the editor and move to the next problem after a short beat (so the
+/// "correct" highlight is visible before advancing).
+fn advance_after_beat(state: GameState) {
+    set_timeout(
+        move || {
+            state.source.set(String::new());
+            state.index.update(|i| *i += 1);
+        },
+        Duration::from_millis(550),
+    );
+}
+
+/// Reflect server results: the authoritative score, and whether to advance.
+/// In the server game the advance happens *here* (only on acceptance) rather
+/// than optimistically, so a rejected solve keeps the player on the problem and
+/// shows why, and there's no race between crediting and fetching the next one.
 fn wire_result_effects(state: GameState, solve_action: SolveAction, finish: FinishAction) {
     Effect::new(move |_| match solve_action.value().get() {
         Some(Ok(r)) => {
-            if r.accepted {
-                log::debug!("solve accepted: score={} solved={}", r.score, r.solved);
-            } else {
-                // Rejected (not an error): log the request id so it can be traced
-                // back to the server warn line that holds the full reason.
-                log::warn!("solve rejected by server (request_id={})", r.request_id);
-            }
             state.score.set(r.score);
             state.solved.set(r.solved);
+            if r.accepted {
+                log::debug!("solve accepted: score={} solved={}", r.score, r.solved);
+                state.reject_notice.set(None);
+                advance_after_beat(state);
+            } else {
+                let reason = r.reason.unwrap_or_else(|| "not counted".into());
+                log::warn!(
+                    "solve rejected by server: {reason} (request_id={})",
+                    r.request_id
+                );
+                state.reject_notice.set(Some(reason));
+            }
         },
-        Some(Err(e)) => log::error!("solve failed: {e}"),
+        Some(Err(e)) => {
+            log::error!("solve failed: {e}");
+            state
+                .reject_notice
+                .set(Some("Network error — solve not counted.".into()));
+        },
         None => {},
     });
 
@@ -230,6 +267,8 @@ fn wire_reset(state: GameState, ta_ref: NodeRef<Textarea>) {
             ta.set_value("");
         }
         state.show_answer.set(false);
+        state.reject_notice.set(None);
+        state.load_err.set(None);
         state.keys.set_value(KeyLog::default());
         state.prob_start_ms.set(js_sys::Date::now());
     });
@@ -248,6 +287,9 @@ fn wire_auto_accept(
         if correct && prev != Some(true) && !state.game_over.get_untracked() {
             if let Some(p) = problem.get_untracked() {
                 if let Some(sess) = state.session.get_untracked() {
+                    // Server path: dispatch solve; the advance fires only on
+                    // acceptance inside wire_result_effects, avoiding the race
+                    // where get_problem(new) sets current before solve(old) lands.
                     let meta = state
                         .keys
                         .with_value(|k| build_meta(k, state.prob_start_ms.get_untracked()));
@@ -259,17 +301,12 @@ fn wire_auto_accept(
                         meta,
                     ));
                 } else {
+                    // Practice path: credit locally and advance after the green beat.
                     state.score.update(|s| *s += p.points());
                     state.solved.update(|s| *s += 1);
+                    advance_after_beat(state);
                 }
             }
-            set_timeout(
-                move || {
-                    state.source.set(String::new());
-                    state.index.update(|i| *i += 1);
-                },
-                Duration::from_millis(550),
-            );
         }
         correct
     });
@@ -346,6 +383,8 @@ fn Board(
     is_correct: Memo<bool>,
     ta_ref: NodeRef<Textarea>,
     hl_ref: NodeRef<Pre>,
+    solve_action: SolveAction,
+    load_refetch: RwSignal<u32>,
 ) -> impl IntoView {
     let on_skip = move |_| {
         state.source.set(String::new());
@@ -379,7 +418,17 @@ fn Board(
         <div class="game">
             <div class="panel">
                 <h3>"Goal"</h3>
-                <div class="target" inner_html=move || target_svg.get()></div>
+                {move || match (state.load_err.get(), problem.get().is_some()) {
+                    (Some(err), false) => view! {
+                        <p class="diag">{err}</p>
+                        <button class="ghost" on:click=move |_| load_refetch.update(|n| *n += 1)>
+                            "Retry"
+                        </button>
+                    }.into_any(),
+                    _ => view! {
+                        <div class="target" inner_html=move || target_svg.get()></div>
+                    }.into_any(),
+                }}
             </div>
 
             <div class="panel">
@@ -412,6 +461,25 @@ fn Board(
                     })}
                     <span class="hint">"Correct answers are accepted automatically."</span>
                 </div>
+                {move || state.reject_notice.get().map(|reason| view! {
+                    <div class="solve-notice">
+                        <span class="solve-notice-reason">{reason}</span>
+                        <button class="ghost" on:click=move |_| {
+                            state.reject_notice.set(None);
+                            if let Some(sess) = state.session.get_untracked() {
+                                let meta = state.keys.with_value(|k| build_meta(k, state.prob_start_ms.get_untracked()));
+                                let n = state.total.get_untracked().max(1);
+                                solve_action.dispatch((
+                                    sess,
+                                    state.index.get_untracked() % n,
+                                    state.source.get_untracked(),
+                                    meta,
+                                ));
+                            }
+                        }>"Try again"</button>
+                        <button class="ghost" on:click=move |_| state.reject_notice.set(None)>"×"</button>
+                    </div>
+                })}
                 {move || (!state.timed && state.show_answer.get()).then(|| view! {
                     <div class="answer">
                         <h3>"Answer"</h3>
@@ -515,6 +583,7 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
 /// * `timed` — run a 3-minute countdown and the game-over flow.
 /// * `server_scored` — fetch problems from the server and score authoritatively (the leaderboard
 ///   game). When false, problems come from the `problems` prop and scoring is local (practice).
+#[allow(clippy::too_many_lines)]
 #[component]
 pub fn GameBoard(
     #[prop(optional)] problems: Vec<Problem>,
@@ -531,16 +600,22 @@ pub fn GameBoard(
     // Fetch the active problem from the server, one at a time. The session is
     // created client-side, so this is a `LocalResource` (client-only): it loads
     // after hydration and refetches when the signals it reads change.
+    let load_refetch = RwSignal::new(0u32);
     let problem_res = LocalResource::new(move || {
         let sess = state.session.get();
         let idx = state.index.get();
         let n = state.total.get();
+        load_refetch.get();
         async move {
             match sess {
                 Some(s) if n > 0 => match get_problem(s, idx % n).await {
-                    Ok(p) => Some(p),
+                    Ok(p) => {
+                        state.load_err.set(None);
+                        Some(p)
+                    },
                     Err(e) => {
                         log::error!("get_problem failed: {e}");
+                        state.load_err.set(Some("Couldn't load problem.".into()));
                         None
                     },
                 },
@@ -610,7 +685,14 @@ pub fn GameBoard(
 
     view! {
         {move || if count() == 0 {
-            view! { <p class="hint">"Loading…"</p> }.into_any()
+            if let Some(err) = state.load_err.get() {
+                view! {
+                    <p class="diag">{err}</p>
+                    <button on:click=move |_| { start_action.dispatch(()); }>"Retry"</button>
+                }.into_any()
+            } else {
+                view! { <p class="hint">"Loading…"</p> }.into_any()
+            }
         } else {
             view! {
                 <Hud state=state problem=problem/>
@@ -623,6 +705,8 @@ pub fn GameBoard(
                     is_correct=is_correct
                     ta_ref=ta_ref
                     hl_ref=hl_ref
+                    solve_action=solve_action
+                    load_refetch=load_refetch
                 />
             }.into_any()
         }}
