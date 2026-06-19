@@ -87,6 +87,9 @@ pub mod ssr {
     /// A 3-minute game; allow a little slack for network/clock skew.
     pub const GAME_SECONDS: u64 = 180;
     pub const GRACE_SECONDS: u64 = 10;
+    /// Sessions older than this are eligible for reaping. Comfortably exceeds
+    /// `GAME_SECONDS + GRACE_SECONDS` so no live game is ever reaped.
+    pub const SESSION_TTL_SECONDS: u64 = 600;
     /// How much longer the client may *claim* a solve took than the server saw.
     pub const ELAPSED_SLACK_MS: u32 = 750;
 
@@ -125,6 +128,20 @@ pub mod ssr {
     #[must_use]
     pub fn new_sessions() -> Sessions {
         Arc::new(Mutex::new(HashMap::new()))
+    }
+
+    /// Remove sessions that have been running longer than [`SESSION_TTL_SECONDS`].
+    /// Returns the number of sessions removed. Called periodically by the server's
+    /// background reaper to bound memory growth from abandoned games.
+    ///
+    /// # Panics
+    /// Panics if the sessions mutex is poisoned (i.e. a previous holder panicked
+    /// while holding the lock, which should never happen in practice).
+    pub fn reap_stale(store: &Sessions) -> usize {
+        let mut map = store.lock().expect("sessions lock");
+        let before = map.len();
+        map.retain(|_, s| s.start.elapsed().as_secs() <= SESSION_TTL_SECONDS);
+        before - map.len()
     }
 
     /// A random session token (UUID v4).
@@ -490,7 +507,9 @@ pub async fn top_scores() -> Result<Vec<ScoreEntry>, ServerFnError> {
 
 #[cfg(all(test, feature = "ssr"))]
 mod tests {
-    use super::ssr::{credit_solve, plausible, sanitize_name, Session, SolveOutcome};
+    use super::ssr::{
+        credit_solve, new_sessions, plausible, reap_stale, sanitize_name, Session, SolveOutcome,
+    };
     use super::InputMeta;
 
     fn good_meta(len: usize) -> InputMeta {
@@ -631,5 +650,35 @@ mod tests {
         assert_eq!(sanitize_name(""), "anonymous");
         assert_eq!(sanitize_name("a\u{0}b\u{7}c"), "abc");
         assert_eq!(sanitize_name(&"x".repeat(100)).chars().count(), 24);
+    }
+
+    #[test]
+    fn reap_stale_removes_expired_sessions() {
+        let store = new_sessions();
+        // A session whose `start` is well in the past (far beyond SESSION_TTL_SECONDS).
+        let stale_start = std::time::Instant::now()
+            .checked_sub(std::time::Duration::from_secs(700))
+            .expect("instant subtraction");
+        {
+            let mut map = store.lock().unwrap();
+            map.insert(
+                "stale".into(),
+                Session {
+                    problems: vec![],
+                    score: 0,
+                    solved: 0,
+                    start: stale_start,
+                    done: std::collections::HashSet::new(),
+                    current: None,
+                    fetched_at: std::collections::HashMap::new(),
+                },
+            );
+            map.insert("fresh".into(), session_with("x"));
+        }
+        let removed = reap_stale(&store);
+        assert_eq!(removed, 1);
+        let map = store.lock().unwrap();
+        assert!(map.contains_key("fresh"));
+        assert!(!map.contains_key("stale"));
     }
 }

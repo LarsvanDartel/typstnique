@@ -46,6 +46,22 @@ async fn main() {
     // In-memory store for active game sessions (server-authoritative scoring).
     let sessions = app::server_fns::ssr::new_sessions();
 
+    // Background task: remove sessions that have outlived SESSION_TTL_SECONDS.
+    // Runs every ~120 s — well within the TTL — so abandoned games don't leak.
+    {
+        let sessions = sessions.clone();
+        tokio::spawn(async move {
+            let interval = std::time::Duration::from_mins(2);
+            loop {
+                tokio::time::sleep(interval).await;
+                let reaped = app::server_fns::ssr::reap_stale(&sessions);
+                if reaped > 0 {
+                    tracing::debug!(reaped, "session reaper");
+                }
+            }
+        });
+    }
+
     let routes = generate_route_list(App);
 
     let app = Router::new()
