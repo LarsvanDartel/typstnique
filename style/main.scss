@@ -460,6 +460,13 @@ h1 {
   }
 }
 
+// ── Pending solve indicator ────────────────────────────────────────────────
+// Brief "Checking…" label shown while the solve request is in flight.
+.solve-pending {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 // ── Solve rejection notice ─────────────────────────────────────────────────
 // Shown below the editor actions when the server rejects a solve (or a
 // network error occurs). Dismissible; "Try again" re-dispatches the action.
@@ -515,7 +522,31 @@ button {
   font-size: 0.85rem;
 }
 
+// ── Answer copy header ─────────────────────────────────────────────────────
+.answer-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+
+  h3 {
+    margin: 0;
+  }
+}
+
 // ── Tables / leaderboard ──────────────────────────────────────────────────
+.leaderboard-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+
+  button.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

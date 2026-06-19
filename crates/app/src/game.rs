@@ -364,9 +364,15 @@ fn Hud(state: GameState, problem: Signal<Option<Problem>>) -> impl IntoView {
                         <span class="label">"Time"</span>
                         <b>{timer_label}</b>
                     </div>
+                    <div class="stat">
+                        <span class="label">"Progress"</span>
+                        <b>{move || format!("{} / {}", state.solved.get(), state.index.get())}</b>
+                    </div>
                 })}
                 <div class="stat"><span class="label">"Score"</span> <b>{move || state.score.get()}</b></div>
-                <div class="stat"><span class="label">"Solved"</span> <b>{move || state.solved.get()}</b></div>
+                {move || (!state.timed).then(|| view! {
+                    <div class="stat"><span class="label">"Solved"</span> <b>{move || state.solved.get()}</b></div>
+                })}
             </div>
         </div>
     }
@@ -459,6 +465,9 @@ fn Board(
                             {move || if state.show_answer.get() { "Hide answer" } else { "Show answer" }}
                         </button>
                     })}
+                    {move || (state.server_scored && solve_action.pending().get()).then(|| view! {
+                        <span class="solve-pending">"Checking\u{2026}"</span>
+                    })}
                     <span class="hint">"Correct answers are accepted automatically."</span>
                 </div>
                 {move || state.reject_notice.get().map(|reason| view! {
@@ -480,11 +489,29 @@ fn Board(
                         <button class="ghost" on:click=move |_| state.reject_notice.set(None)>"×"</button>
                     </div>
                 })}
-                {move || (!state.timed && state.show_answer.get()).then(|| view! {
-                    <div class="answer">
-                        <h3>"Answer"</h3>
-                        <pre class="answer-src">{move || problem.get().map(|p| p.source)}</pre>
-                    </div>
+                {move || (!state.timed && state.show_answer.get()).then(|| {
+                    let copied = RwSignal::new(false);
+                    view! {
+                        <div class="answer">
+                            <div class="answer-header">
+                                <h3>"Answer"</h3>
+                                <button class="ghost" on:click=move |_| {
+                                    let src = problem.get_untracked()
+                                        .map(|p| p.source)
+                                        .unwrap_or_default();
+                                    let _ = window().navigator().clipboard().write_text(&src);
+                                    copied.set(true);
+                                    set_timeout(
+                                        move || copied.set(false),
+                                        Duration::from_millis(1500),
+                                    );
+                                }>
+                                    {move || if copied.get() { "Copied!" } else { "Copy" }}
+                                </button>
+                            </div>
+                            <pre class="answer-src">{move || problem.get().map(|p| p.source)}</pre>
+                        </div>
+                    }
                 })}
             </div>
         </div>
