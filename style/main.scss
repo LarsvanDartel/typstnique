@@ -117,6 +117,12 @@ main {
   max-width: 1080px;
   margin: 0 auto;
   padding: 1.5rem;
+
+  // Body links default to the accent colour; browser default (#00e) is
+  // unreadable on dark backgrounds. Nav links override this via .nav a.
+  a {
+    color: var(--accent);
+  }
 }
 
 // ── Landing page ──────────────────────────────────────────────────────────

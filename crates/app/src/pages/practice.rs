@@ -145,6 +145,25 @@ pub fn PracticeBuilderPage() -> impl IntoView {
     });
     let shown = Memo::new(move |_| visible.get().len());
 
+    let all_visible_selected = move || {
+        let v = visible.get();
+        !v.is_empty() && v.iter().all(|&i| checked.with(|s| s.contains(&i)))
+    };
+    let toggle_all = move |_| {
+        let v = visible.get();
+        checked.update(|s| {
+            if v.iter().all(|&i| s.contains(&i)) {
+                for &i in &v {
+                    s.remove(&i);
+                }
+            } else {
+                for &i in &v {
+                    s.insert(i);
+                }
+            }
+        });
+    };
+
     let create = Action::new(|titles: &Vec<String>| {
         let titles = titles.clone();
         async move { save_practice_set(titles).await }
@@ -193,6 +212,13 @@ pub fn PracticeBuilderPage() -> impl IntoView {
             <p class="hint">"No problems match."</p>
         })}
         <div class="builder-footer">
+            <button
+                class="ghost"
+                on:click=toggle_all
+                disabled=move || visible.get().is_empty()
+            >
+                {move || if all_visible_selected() { "Deselect all" } else { "Select all" }}
+            </button>
             <span>{move || format!("{} selected", n_checked())}</span>
             <button
                 on:click=on_create

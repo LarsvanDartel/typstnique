@@ -106,6 +106,8 @@ struct GameState {
     score: RwSignal<u32>,
     solved: RwSignal<u32>,
     time_left: RwSignal<i32>,
+    /// Elapsed seconds in practice mode (counts up; always 0 in timed mode).
+    elapsed: RwSignal<i32>,
     /// The game has ended (timer hit zero). Stays true until a restart, so the
     /// editor stays disabled even while the summary popup is dismissed.
     game_over: RwSignal<bool>,
@@ -140,6 +142,7 @@ impl GameState {
             score: RwSignal::new(0),
             solved: RwSignal::new(0),
             time_left: RwSignal::new(if timed { 180 } else { 0 }),
+            elapsed: RwSignal::new(0),
             game_over: RwSignal::new(false),
             summary_open: RwSignal::new(false),
             name: RwSignal::new(String::new()),
@@ -340,6 +343,44 @@ fn wire_timer(state: GameState) {
     });
 }
 
+/// Elapsed-time counter for practice mode. Increments `elapsed` every second
+/// and stops while the game is over (so "practice again" continues cleanly).
+fn wire_elapsed_timer(state: GameState) {
+    if state.timed || state.server_scored {
+        return;
+    }
+    Effect::new(move |_| {
+        let handle = set_interval_with_handle(
+            move || {
+                if !state.game_over.get_untracked() {
+                    state.elapsed.update(|t| *t += 1);
+                }
+            },
+            Duration::from_secs(1),
+        );
+        if let Ok(handle) = handle {
+            on_cleanup(move || handle.clear());
+        }
+    });
+}
+
+/// Trigger game-over when the player has advanced past the last problem in
+/// practice mode. The Effect watches `index` and fires the moment it reaches
+/// `problems.len()`, showing the summary popup.
+fn wire_practice_complete(state: GameState) {
+    if state.timed || state.server_scored {
+        return;
+    }
+    Effect::new(move |_| {
+        let n = state.problems.with(Vec::len);
+        let i = state.index.get();
+        if n > 0 && i >= n && !state.game_over.get_untracked() {
+            state.game_over.set(true);
+            state.summary_open.set(true);
+        }
+    });
+}
+
 // ── sub-components ──────────────────────────────────────────────────────────
 
 /// Problem title/difficulty + timer/score/solved stats.
@@ -371,6 +412,13 @@ fn Hud(state: GameState, problem: Signal<Option<Problem>>) -> impl IntoView {
                 })}
                 <div class="stat"><span class="label">"Score"</span> <b>{move || state.score.get()}</b></div>
                 {move || (!state.timed).then(|| view! {
+                    <div class="stat">
+                        <span class="label">"Time"</span>
+                        <b>{move || {
+                            let t = state.elapsed.get();
+                            format!("{}:{:02}", t / 60, t % 60)
+                        }}</b>
+                    </div>
                     <div class="stat">
                         <span class="label">"Solved"</span>
                         <b>{move || format!("{} / {}", state.solved.get(), state.problems.with(Vec::len))}</b>
@@ -521,21 +569,10 @@ fn Board(
     }
 }
 
-/// End-of-game modal: submit name to the leaderboard, or play again.
+/// End-of-game modal: submit name to the leaderboard (timed game) or show a
+/// practice-complete summary (practice mode).
 #[component]
 fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> impl IntoView {
-    let on_submit_score = move |_| {
-        if state.submitted.get_untracked() || finish.pending().get_untracked() {
-            return;
-        }
-        let Some(sess) = state.session.get_untracked() else {
-            return;
-        };
-        state.submitted.set(true);
-        state.submit_err.set(None);
-        finish.dispatch((sess, state.name.get_untracked()));
-    };
-
     let play_again = move |_| {
         state.submitted.set(false);
         state.submit_err.set(None);
@@ -544,13 +581,12 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
             state.game_over.set(false);
             start.dispatch(()); // fresh session; install effect resets the rest
         } else {
-            // (Practice has no timer, so this modal never opens there — kept for
-            // completeness. The reset effect clears the editor on index change.)
             state.score.set(0);
             state.solved.set(0);
             state.index.set(0);
+            state.elapsed.set(0);
             state.source.set(String::new());
-            state.time_left.set(if state.timed { 180 } else { 0 });
+            state.time_left.set(0);
             state.game_over.set(false);
             state.problems.update(|p| shuffle(p));
         }
@@ -563,34 +599,65 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
             <div class="modal">
                 <div class="modal-box">
                     <button class="modal-close" title="Close" on:click=move |_| state.summary_open.set(false)>"×"</button>
-                    <h2>"Time's up!"</h2>
-                    <p>
-                        "You scored " <b>{move || state.score.get()}</b>
-                        " points (" {move || state.solved.get()} " solved)."
-                    </p>
-                    {move || if state.submitted.get() {
+                    {if state.timed {
+                        let on_submit_score = move |_| {
+                            if state.submitted.get_untracked() || finish.pending().get_untracked() {
+                                return;
+                            }
+                            let Some(sess) = state.session.get_untracked() else {
+                                return;
+                            };
+                            state.submitted.set(true);
+                            state.submit_err.set(None);
+                            finish.dispatch((sess, state.name.get_untracked()));
+                        };
                         view! {
-                            <p class="submitted">"✓ Score submitted"</p>
-                            <p><A href="/leaderboard">"View leaderboard →"</A></p>
+                            <h2>"Time\u{2019}s up!"</h2>
+                            <p>
+                                "You scored " <b>{move || state.score.get()}</b>
+                                " points (" {move || state.solved.get()} " solved)."
+                            </p>
+                            {move || if state.submitted.get() {
+                                view! {
+                                    <p class="submitted">"\u{2713} Score submitted"</p>
+                                    <p><A href="/leaderboard">"View leaderboard \u{2192}"</A></p>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    <input
+                                        placeholder="Your name"
+                                        prop:value=move || state.name.get()
+                                        on:input=move |ev| state.name.set(event_target_value(&ev))
+                                    />
+                                    <button
+                                        prop:disabled=move || finish.pending().get()
+                                        on:click=on_submit_score
+                                    >"Submit score"</button>
+                                    {move || state.submit_err.get().map(|e| view! { <p class="diag">{e}</p> })}
+                                }.into_any()
+                            }}
+                            <div class="modal-actions">
+                                <button class="ghost" on:click=play_again>"Play again"</button>
+                                <A href="/leaderboard">"Leaderboard"</A>
+                            </div>
                         }.into_any()
                     } else {
                         view! {
-                            <input
-                                placeholder="Your name"
-                                prop:value=move || state.name.get()
-                                on:input=move |ev| state.name.set(event_target_value(&ev))
-                            />
-                            <button
-                                prop:disabled=move || finish.pending().get()
-                                on:click=on_submit_score
-                            >"Submit score"</button>
-                            {move || state.submit_err.get().map(|e| view! { <p class="diag">{e}</p> })}
+                            <h2>"Practice complete!"</h2>
+                            <p>
+                                "Solved " <b>{move || state.solved.get()}</b>
+                                " / " {move || state.problems.with(Vec::len)}
+                                " in " {move || {
+                                    let t = state.elapsed.get();
+                                    format!("{}:{:02}", t / 60, t % 60)
+                                }}
+                                " \u{b7} " <b>{move || state.score.get()}</b> " pts"
+                            </p>
+                            <div class="modal-actions">
+                                <button on:click=play_again>"Practice again"</button>
+                            </div>
                         }.into_any()
                     }}
-                    <div class="modal-actions">
-                        <button class="ghost" on:click=play_again>"Play again"</button>
-                        <A href="/leaderboard">"Leaderboard"</A>
-                    </div>
                 </div>
             </div>
         })}
@@ -598,9 +665,14 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
         // so the player is never stranded without a way to restart.
         {move || (state.game_over.get() && !state.summary_open.get()).then(|| view! {
             <div class="game-over-bar">
-                <span class="game-over-label">"Game over · " {move || state.score.get()} " pts"</span>
+                <span class="game-over-label">
+                    {if state.timed { "Game over" } else { "Practice complete" }}
+                    " \u{b7} " {move || state.score.get()} " pts"
+                </span>
                 <button class="ghost" on:click=move |_| state.summary_open.set(true)>"Summary"</button>
-                <button on:click=play_again>"Play again"</button>
+                <button on:click=play_again>
+                    {if state.timed { "Play again" } else { "Practice again" }}
+                </button>
             </div>
         })}
     }
@@ -660,7 +732,13 @@ pub fn GameBoard(
         } else {
             state.problems.with(|p| {
                 let n = p.len();
-                (n > 0).then(|| p[state.index.get() % n].clone())
+                if n == 0 {
+                    return None;
+                }
+                // Clamp to the last problem when done so the goal panel doesn't
+                // flash empty while the game-over modal is animating in.
+                let i = state.index.get().min(n - 1);
+                Some(p[i].clone())
             })
         }
     });
@@ -704,6 +782,8 @@ pub fn GameBoard(
     wire_reset(state, ta_ref);
     wire_auto_accept(state, problem, is_correct, solve_action);
     wire_timer(state);
+    wire_elapsed_timer(state);
+    wire_practice_complete(state);
 
     let count = move || {
         if state.server_scored {
