@@ -524,6 +524,72 @@ pub async fn top_scores(period: LeaderboardPeriod) -> Result<Vec<ScoreEntry>, Se
         .collect())
 }
 
+/// Save a custom practice set (a list of problem titles) server-side and return
+/// its UUID. The UUID forms a permanent `/practice/{id}` link: the set is
+/// looked up by ID even if problems are added or removed later. Titles that no
+/// longer exist simply won't appear when the set is loaded.
+#[server]
+pub async fn save_practice_set(titles: Vec<String>) -> Result<String, ServerFnError> {
+    use ssr::{new_request_id, pool, req_err};
+
+    let request_id = new_request_id();
+
+    if titles.is_empty() {
+        return Err(req_err(&request_id, "practice set must not be empty"));
+    }
+    if titles.len() > 300 {
+        return Err(req_err(&request_id, "practice set too large"));
+    }
+
+    // Validate every title against the bundled problem set so clients can't
+    // store arbitrary strings.
+    let known: std::collections::HashSet<String> = crate::problems::load_problems()
+        .into_iter()
+        .map(|p| p.title)
+        .collect();
+    for t in &titles {
+        if !known.contains(t) {
+            return Err(req_err(&request_id, &format!("unknown problem: {t}")));
+        }
+    }
+
+    let pool = pool()?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let json =
+        serde_json::to_string(&titles).map_err(|e| req_err(&request_id, &format!("json: {e}")))?;
+    sqlx::query("INSERT INTO practice_sets (id, titles) VALUES (?, ?)")
+        .bind(&id)
+        .bind(&json)
+        .execute(&pool)
+        .await
+        .map_err(|e| req_err(&request_id, &format!("db: {e}")))?;
+
+    tracing::debug!(request_id, count = titles.len(), %id, "practice set saved");
+    Ok(id)
+}
+
+/// Load a previously saved practice set by UUID. Returns the list of problem
+/// titles; the caller filters `load_problems()` by this list.
+#[server]
+pub async fn get_practice_set(id: String) -> Result<Vec<String>, ServerFnError> {
+    use ssr::{new_request_id, pool, req_err};
+
+    let request_id = new_request_id();
+    let pool = pool()?;
+    let row: Option<(String,)> = sqlx::query_as("SELECT titles FROM practice_sets WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| req_err(&request_id, &format!("db: {e}")))?;
+
+    match row {
+        None => Err(req_err(&request_id, "practice set not found")),
+        Some((json,)) => {
+            serde_json::from_str(&json).map_err(|e| req_err(&request_id, &format!("json: {e}")))
+        },
+    }
+}
+
 #[cfg(all(test, feature = "ssr"))]
 mod tests {
     use super::ssr::{

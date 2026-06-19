@@ -14,7 +14,10 @@ use leptos_icons::Icon;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::components::{Route, Router, Routes, A};
 use leptos_router::path;
-use pages::{HomePage, LeaderboardPage, PlayPage, PracticePage, ProblemsPage};
+use pages::{
+    CustomPracticePage, HomePage, LeaderboardPage, PlayPage, PracticeBuilderPage, PracticePage,
+    ProblemsPage,
+};
 
 /// Public repository, linked from the nav.
 const REPO_URL: &str = "https://github.com/LarsvanDartel/typstnique";
@@ -132,6 +135,8 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("") view=HomePage/>
                     <Route path=path!("/play") view=PlayPage/>
                     <Route path=path!("/practice") view=PracticePage/>
+                    <Route path=path!("/practice/new") view=PracticeBuilderPage/>
+                    <Route path=path!("/practice/:id") view=CustomPracticePage/>
                     <Route path=path!("/problems") view=ProblemsPage/>
                     <Route path=path!("/leaderboard") view=LeaderboardPage/>
                 </Routes>
