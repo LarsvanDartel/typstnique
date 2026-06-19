@@ -17,7 +17,13 @@ toml = "0.8"
 leptos_icons = "0.7"
 icondata = { version = "0.7", default-features = false, features = ["feather"] }
 # `Storage` for theme persistence; `HtmlTextAreaElement` for the editor.
-web-sys = { version = "0.3", features = ["Storage", "HtmlTextAreaElement"] }
+web-sys = { version = "0.3", features = [
+    "Storage",
+    "HtmlTextAreaElement",
+    "Navigator",
+    "Clipboard",
+    "MediaQueryList",
+] }
 js-sys = "0.3"
 
 # server-only (SSR) dependencies

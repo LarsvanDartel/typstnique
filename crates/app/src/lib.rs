@@ -64,6 +64,14 @@ pub fn App() -> impl IntoView {
                 .and_then(|s| s.get_item("theme").ok().flatten())
             {
                 theme.set(saved);
+            } else if window()
+                .match_media("(prefers-color-scheme: light)")
+                .ok()
+                .flatten()
+                .map(|mq| mq.matches())
+                .unwrap_or(false)
+            {
+                theme.set("light".into());
             }
         }
         let t = theme.get();
