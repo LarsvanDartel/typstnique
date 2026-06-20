@@ -88,7 +88,7 @@ source = "integral.triple_V (nabla dot upright(bold(F))) dif V = integral.surf_S
 
 [[problem]]
 title = "Cauchy-Schwarz Inequality"
-source = "abs(chevron.l upright(bold(u))\\, upright(bold(v)) chevron.r)^2 <= chevron.l upright(bold(u)), upright(bold(u)) chevron.r dot chevron.l upright(bold(v)), upright(bold(v)) chevron.r"
+source = "abs(chevron(upright(bold(u))\\, upright(bold(v))))^2 <= chevron(upright(bold(u))\\, upright(bold(u))) dot chevron(upright(bold(v))\\, upright(bold(v)))"
 
 [[problem]]
 title = "Area of a Circle"
@@ -440,7 +440,7 @@ source = "C_n = sum_(k = 1)^(n - 1) C_k C_(n - k - 1) = 1 / (n + 1) binom(2 n, n
 
 [[problem]]
 title = "Ising Model Hamiltonian"
-source = "H(sigma) = -sum_(chevron.l i,j chevron.r) J_(i j) sigma_i sigma_j - mu sum_j h_j sigma_j"
+source = "H(sigma) = -sum_chevron(i\\,j) J_(i j) sigma_i sigma_j - mu sum_j h_j sigma_j"
 
 [[problem]]
 title = "Borwein Integral"
@@ -644,7 +644,7 @@ source = "tan(alpha plus.minus beta) = (tan(alpha) plus.minus tan(beta)) / (1 mi
 
 [[problem]]
 title = "Inner Product of Continuous Complex Valued Functions"
-source = "chevron.l f, g chevron.r = integral_0^(2 pi) f(t) overline(g(t)) dif t"
+source = "chevron(f\\, g) = integral_0^(2 pi) f(t) overline(g(t)) dif t"
 
 [[problem]]
 title = "Definition of a Psuedorandom Generator"
@@ -691,7 +691,7 @@ source = "A = mat(|, |,, |; upright(bold(v))_1, upright(bold(v))_2, dots.c, upri
 
 [[problem]]
 title = "Wigner Transform of the Density Matrix"
-source = "W(x, p) = 1 / (pi planck) integral_(-oo)^oo chevron.l x + y|hat(rho)|x - y chevron.r e^(- 2 i p y \\/ planck) y"
+source = "W(x, p) = 1 / (pi planck) integral_(-oo)^oo chevron(x + y|hat(rho)|x - y) e^(- 2 i p y \\/ planck) y"
 
 [[problem]]
 title = "Power Mean"
