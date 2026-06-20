@@ -511,16 +511,22 @@ pub async fn top_scores(period: LeaderboardPeriod) -> Result<Vec<ScoreEntry>, Se
     let pool = pool()?;
 
     // WHERE clause comes from a trusted server-side enum, not user input.
-    let since = match period {
+    let filter = match period {
         LeaderboardPeriod::AllTime => String::new(),
         LeaderboardPeriod::Monthly => {
             "WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') ".into()
         },
         LeaderboardPeriod::Daily => "WHERE date(created_at) = date('now') ".into(),
     };
+    // ROW_NUMBER() picks the best score row per name; ties broken by earliest submit.
     let sql = format!(
-        "SELECT name, score, problems_solved FROM scores \
-         {since}ORDER BY score DESC, created_at ASC LIMIT 50"
+        "WITH best AS (
+            SELECT name, score, problems_solved,
+                   ROW_NUMBER() OVER (PARTITION BY name ORDER BY score DESC, created_at ASC) AS rn
+            FROM scores {filter}
+        )
+        SELECT name, score, problems_solved FROM best WHERE rn = 1
+        ORDER BY score DESC LIMIT 50"
     );
 
     let rows = sqlx::query_as::<_, (String, i64, i64)>(&sql)
