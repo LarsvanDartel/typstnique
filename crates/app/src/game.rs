@@ -128,6 +128,8 @@ struct GameState {
     /// Set when starting a game or fetching a problem fails, so the board can
     /// offer a retry instead of spinning on "Loading…".
     load_err: RwSignal<Option<String>>,
+    /// Whether the "End game?" confirmation dialog is open.
+    confirm_end: RwSignal<bool>,
     keys: StoredValue<KeyLog>,
     prob_start_ms: RwSignal<f64>,
     timed: bool,
@@ -156,6 +158,7 @@ impl GameState {
             submit_err: RwSignal::new(None),
             reject_notice: RwSignal::new(None),
             load_err: RwSignal::new(None),
+            confirm_end: RwSignal::new(false),
             keys: StoredValue::new(KeyLog::default()),
             prob_start_ms: RwSignal::new(0.0),
             timed,
@@ -335,6 +338,7 @@ fn wire_timer(state: GameState) {
                 }
                 if t <= 1 {
                     state.time_left.set(0);
+                    state.confirm_end.set(false);
                     state.game_over.set(true);
                     state.summary_open.set(true);
                 } else {
@@ -540,6 +544,13 @@ fn Board(
                 </div>
                 <div class="actions">
                     <button class="ghost" prop:disabled=move || state.game_over.get() on:click=on_skip>"Skip"</button>
+                    {state.timed.then(|| view! {
+                        <button
+                            class="ghost end-game"
+                            prop:disabled=move || state.game_over.get()
+                            on:click=move |_| state.confirm_end.set(true)
+                        >"End game"</button>
+                    })}
                     {(!state.timed).then(|| view! {
                         <button class="ghost" on:click=move |_| state.show_answer.update(|s| *s = !*s)>
                             {move || if state.show_answer.get() { "Hide answer" } else { "Show answer" }}
@@ -622,6 +633,22 @@ fn GameOverModal(state: GameState, start: StartAction, finish: FinishAction) -> 
     };
 
     view! {
+        {move || state.confirm_end.get().then(|| view! {
+            <div class="modal">
+                <div class="modal-box">
+                    <h2>"End game?"</h2>
+                    <p>"Your current score will be saved. You can still submit it to the leaderboard after."</p>
+                    <div class="modal-actions">
+                        <button on:click=move |_| {
+                            state.confirm_end.set(false);
+                            state.game_over.set(true);
+                            state.summary_open.set(true);
+                        }>"End game"</button>
+                        <button class="ghost" on:click=move |_| state.confirm_end.set(false)>"Cancel"</button>
+                    </div>
+                </div>
+            </div>
+        })}
         // The summary popup. Closing it only hides the popup — the game stays
         // over (editor disabled) and the bar below offers a way back.
         {move || state.summary_open.get().then(|| view! {
