@@ -513,8 +513,10 @@ pub async fn top_scores(period: LeaderboardPeriod) -> Result<Vec<ScoreEntry>, Se
     // WHERE clause comes from a trusted server-side enum, not user input.
     let since = match period {
         LeaderboardPeriod::AllTime => String::new(),
-        LeaderboardPeriod::Monthly => "WHERE created_at >= datetime('now', '-30 days') ".into(),
-        LeaderboardPeriod::Daily => "WHERE created_at >= datetime('now', '-1 day') ".into(),
+        LeaderboardPeriod::Monthly => {
+            "WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') ".into()
+        },
+        LeaderboardPeriod::Daily => "WHERE date(created_at) = date('now') ".into(),
     };
     let sql = format!(
         "SELECT name, score, problems_solved FROM scores \

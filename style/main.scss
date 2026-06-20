@@ -553,6 +553,13 @@ button {
   }
 }
 
+.reset-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: -0.75rem;
+  margin-bottom: 1rem;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
