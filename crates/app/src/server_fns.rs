@@ -221,7 +221,7 @@ pub mod ssr {
         }
 
         s.done.insert(index);
-        let points = typst_engine::difficulty_score(&problem.source);
+        let points = problem.points();
         s.score += points;
         s.solved += 1;
         SolveOutcome::Accepted(SolveRecord {

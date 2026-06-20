@@ -13,14 +13,24 @@ pub struct Problem {
 }
 
 impl Problem {
-    /// Points awarded for solving this problem, from the source heuristic.
+    /// Points awarded for solving this problem. Source length is the primary
+    /// signal (~90% of the value at median length); the structural difficulty
+    /// rating adds a small modifier so two equally long problems with different
+    /// complexity still differ slightly.
     pub fn points(&self) -> u32 {
-        typst_engine::difficulty_score(&self.source)
+        let chars = self.source.chars().count() as u32;
+        let raw = chars * 8 + self.difficulty() * 20;
+        let rounded = ((raw + 5) / 10) * 10;
+        rounded.clamp(
+            typst_engine::MIN_DIFFICULTY_SCORE,
+            typst_engine::MAX_DIFFICULTY_SCORE,
+        )
     }
 
-    /// A 1–5 difficulty tier derived from the points, for display.
+    /// A 1–5 difficulty tier based on structural complexity (fractions, scripts,
+    /// nesting depth), used as stars in the UI and as a minor points modifier.
     pub fn difficulty(&self) -> u32 {
-        match self.points() {
+        match typst_engine::difficulty_score(&self.source) {
             0..=150 => 1,
             151..=300 => 2,
             301..=500 => 3,

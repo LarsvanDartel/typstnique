@@ -188,12 +188,13 @@ pub const MIN_DIFFICULTY_SCORE: u32 = 50;
 /// submitted scores (`score <= solved * MAX_DIFFICULTY_SCORE`).
 pub const MAX_DIFFICULTY_SCORE: u32 = 1500;
 
-/// A heuristic difficulty/points value for a problem, derived from its source.
+/// A heuristic structural complexity score for a problem, used to derive the
+/// 1–5 star difficulty display (see `Problem::difficulty`).
 ///
 /// Parses the math AST (so it reflects real structure rather than incidental
-/// characters) and scores from three signals: the number of content leaves
-/// (length proxy), the weighted count of "complex" constructs (fractions,
-/// scripts, roots, matrices, function calls, …), and the maximum nesting depth.
+/// characters) and scores from three signals: the number of content leaves,
+/// the weighted count of "complex" constructs (fractions, scripts, roots,
+/// matrices, function calls, …), and the maximum nesting depth.
 /// Rounded to a tidy multiple and clamped to a sensible range.
 #[must_use]
 pub fn difficulty_score(source: &str) -> u32 {
