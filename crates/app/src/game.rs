@@ -119,6 +119,7 @@ struct GameState {
     summary_open: RwSignal<bool>,
     name: RwSignal<String>,
     show_answer: RwSignal<bool>,
+    overlay: RwSignal<bool>,
     submitted: RwSignal<bool>,
     submit_err: RwSignal<Option<String>>,
     /// Why the last solve attempt wasn't counted (server rejection or network
@@ -150,6 +151,7 @@ impl GameState {
             summary_open: RwSignal::new(false),
             name: RwSignal::new(String::new()),
             show_answer: RwSignal::new(false),
+            overlay: RwSignal::new(false),
             submitted: RwSignal::new(false),
             submit_err: RwSignal::new(None),
             reject_notice: RwSignal::new(None),
@@ -273,6 +275,7 @@ fn wire_reset(state: GameState, ta_ref: NodeRef<Textarea>) {
             ta.set_value("");
         }
         state.show_answer.set(false);
+        state.overlay.set(false);
         state.reject_notice.set(None);
         state.load_err.set(None);
         state.keys.set_value(KeyLog::default());
@@ -502,8 +505,21 @@ fn Board(
             </div>
 
             <div class="panel">
-                <h3>"Your render"</h3>
-                <div class="preview" class:correct=move || is_correct.get() inner_html=move || preview.get()></div>
+                <div class="panel-header">
+                    <h3>"Your render"</h3>
+                    <button
+                        class="ghost"
+                        on:click=move |_| state.overlay.update(|s| *s = !*s)
+                    >
+                        {move || if state.overlay.get() { "Hide overlay" } else { "Overlay" }}
+                    </button>
+                </div>
+                <div class="preview" class:correct=move || is_correct.get()>
+                    <div inner_html=move || preview.get()></div>
+                    {move || state.overlay.get().then(|| view! {
+                        <div class="preview-ghost" inner_html=target_svg.get()></div>
+                    })}
+                </div>
             </div>
 
             <div class="panel editor-panel">

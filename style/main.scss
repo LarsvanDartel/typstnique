@@ -280,13 +280,37 @@ h1 {
   background: #fff;
   border-radius: 8px;
   min-height: 120px;
+  overflow: auto;
+  border: 3px solid transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+// Goal: simple flex that centres the SVG.
+.target {
   padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: safe center;
-  overflow: auto;
-  border: 3px solid transparent;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+// Preview: grid so the user render and the optional ghost overlay stack in the
+// same cell, each using an identical flex layer so their SVGs align.
+.preview {
+  display: grid;
+
+  > * {
+    grid-row: 1;
+    grid-column: 1;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: safe center;
+  }
+
+  .preview-ghost {
+    opacity: 0.35;
+    pointer-events: none;
+  }
 }
 
 // Render the Typst SVG at its intrinsic size — never let the flex container
@@ -529,15 +553,23 @@ button {
 }
 
 // ── Answer copy header ─────────────────────────────────────────────────────
+.panel-header,
 .answer-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 0.35rem;
 
   h3 {
     margin: 0;
   }
+}
+
+.panel-header {
+  margin-bottom: 0.6rem;
+}
+
+.answer-header {
+  margin-bottom: 0.35rem;
 }
 
 // ── Tables / leaderboard ──────────────────────────────────────────────────
