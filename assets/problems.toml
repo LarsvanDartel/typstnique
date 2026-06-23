@@ -691,7 +691,7 @@ source = "A = mat(|, |,, |; upright(bold(v))_1, upright(bold(v))_2, dots.c, upri
 
 [[problem]]
 title = "Wigner Transform of the Density Matrix"
-source = "W(x, p) = 1 / (pi planck) integral_(-oo)^oo chevron(x + y|hat(rho)|x - y) e^(- 2 i p y \\/ planck) y"
+source = "W(x, p) = 1 / (pi planck) integral_(-oo)^oo chevron(x + y|hat(rho)|x - y) e^(- 2 i p y \\/ planck) dif y"
 
 [[problem]]
 title = "Power Mean"
